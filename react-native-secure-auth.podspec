@@ -8,9 +8,9 @@ Pod::Spec.new do |s|
   s.summary      = package['description']
   s.license      = package['license']
   s.authors      = 'react-native-secure-auth contributors'
-  s.homepage     = 'https://github.com/OWNER/react-native-secure-auth'
+  s.homepage     = 'https://github.com/musti-91/react-native-secure-auth'
   s.platform     = :ios, '15.1'
-  s.source       = { :git => 'https://github.com/OWNER/react-native-secure-auth.git', :tag => "v#{s.version}" }
+  s.source       = { :git => 'https://github.com/musti-91/react-native-secure-auth.git', :tag => "v#{s.version}" }
   s.source_files = 'ios/**/*.{h,m}'
   s.requires_arc = true
   s.frameworks   = 'SafariServices', 'WebKit', 'AuthenticationServices'
