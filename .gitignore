@@ -1,0 +1,19 @@
+.DS_Store
+node_modules/
+build/
+plugin/build/
+.gradle
+local.properties
+*.iml
+.idea
+xcuserdata
+DerivedData
+*.xcuserstate
+coverage/
+example/ios/Pods
+example/vendor
+
+# Yarn
+.yarn/*
+!.yarn/releases
+.pnp.*

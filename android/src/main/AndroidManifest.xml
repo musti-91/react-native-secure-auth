@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Embedded browser used by the opt-in `browser.androidMode: 'webView'` option. -->
+        <activity
+            android:name="com.rnappauth.browser.RNAppAuthWebViewActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|uiMode"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/RNAppAuthWebViewTheme" />
+
+        <!-- Receives Custom Tabs menu item presses created from `browser.header.buttons`. -->
+        <receiver
+            android:name="com.rnappauth.browser.HeaderButtonReceiver"
+            android:exported="false" />
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+</manifest>
