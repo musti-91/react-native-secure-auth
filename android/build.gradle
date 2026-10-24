@@ -1,0 +1,52 @@
+def safeExtGet(prop, fallback) {
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+buildscript {
+    // Only needed when opening the android folder stand-alone.
+    if (project == rootProject) {
+        repositories {
+            mavenCentral()
+            google()
+        }
+        dependencies {
+            classpath 'com.android.tools.build:gradle:8.9.1'
+        }
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.rnappauth"
+
+    compileSdkVersion safeExtGet('compileSdkVersion', 36)
+    defaultConfig {
+        minSdkVersion safeExtGet('minSdkVersion', 24)
+        targetSdkVersion safeExtGet('targetSdkVersion', 36)
+        manifestPlaceholders = [
+                'appAuthRedirectScheme': 'please.override.me'
+        ]
+    }
+    lintOptions {
+        abortOnError false
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    //noinspection GradleDynamicVersion
+    implementation 'com.facebook.react:react-android:+'
+    implementation 'net.openid:appauth:0.11.1'
+    implementation "androidx.browser:browser:${safeExtGet('androidxBrowserVersion', '1.9.0')}"
+    implementation "androidx.webkit:webkit:${safeExtGet('androidxWebkitVersion', '1.12.1')}"
+    implementation 'androidx.core:core:1.13.1'
+}
