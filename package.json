@@ -3,6 +3,15 @@
   "version": "1.0.0",
   "description": "React Native bridge for AppAuth (OAuth 2.0 / OpenID Connect) with customizable browser headers, browser postMessage messaging, discovery helpers and automatic token refresh",
   "main": "index.js",
+  "author": "musti-91",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/musti-91/react-native-secure-auth.git"
+  },
+  "homepage": "https://github.com/musti-91/react-native-secure-auth#readme",
+  "bugs": {
+    "url": "https://github.com/musti-91/react-native-secure-auth/issues"
+  },
   "types": "index.d.ts",
   "react-native": "index.js",
   "scripts": {
