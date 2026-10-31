@@ -4,15 +4,18 @@ import { ConfigPlugin, withXcodeProject } from '@expo/config-plugins';
 
 const SETTING = 'SWIFT_OBJC_BRIDGING_HEADER';
 const IMPORT = '#import <react-native-secure-auth/RNAppAuthAuthorizationFlowManager.h>';
-const IMPORT_RE = /#import\s+[<"](?:react-native-secure-auth\/)?RNAppAuthAuthorizationFlowManager\.h[>"]/;
+const IMPORT_RE =
+  /#import\s+[<"](?:react-native-secure-auth\/)?RNAppAuthAuthorizationFlowManager\.h[>"]/;
 
 export const ensureBridgingHeaderImport = (contents: string): string =>
-  IMPORT_RE.test(contents) ? contents : `${contents.replace(/\s*$/, '')}${contents.trim() ? '\n' : ''}${IMPORT}\n`;
+  IMPORT_RE.test(contents)
+    ? contents
+    : `${contents.replace(/\s*$/, '')}${contents.trim() ? '\n' : ''}${IMPORT}\n`;
 
 const unquote = (v: string) => v.replace(/^"|"$/g, '');
 
-export const withBridgingHeader: ConfigPlugin = config =>
-  withXcodeProject(config, mod => {
+export const withBridgingHeader: ConfigPlugin = (config) =>
+  withXcodeProject(config, (mod) => {
     const project = mod.modResults;
     const iosRoot = mod.modRequest.platformProjectRoot;
     const projectName = mod.modRequest.projectName || 'App';
@@ -30,7 +33,9 @@ export const withBridgingHeader: ConfigPlugin = config =>
         rel = defaultRel;
         settings[SETTING] = `"${rel}"`;
       }
-      rel = rel.replace(/\$\((SRCROOT|PROJECT_DIR)\)\/?/g, '').replace(/\$\((TARGET_NAME|PROJECT_NAME)\)/g, projectName);
+      rel = rel
+        .replace(/\$\((SRCROOT|PROJECT_DIR)\)\/?/g, '')
+        .replace(/\$\((TARGET_NAME|PROJECT_NAME)\)/g, projectName);
       headers.add(path.resolve(iosRoot, rel));
     }
     for (const file of headers) {

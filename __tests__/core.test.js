@@ -95,8 +95,14 @@ describe('native argument marshalling', () => {
     expect(native.logout.mock.calls[0]).toHaveLength(8);
     expect(native.logout.mock.calls[0][7]).toBeNull();
     setPlatform('android');
-    await logout({ ...config, browser }, { idToken: 'id', postLogoutRedirectUrl: 'com.example:/out' });
-    expect(native.logout.mock.calls[1][8]).toEqual({ mode: 'customTab', header: { showTitle: false } });
+    await logout(
+      { ...config, browser },
+      { idToken: 'id', postLogoutRedirectUrl: 'com.example:/out' }
+    );
+    expect(native.logout.mock.calls[1][8]).toEqual({
+      mode: 'customTab',
+      header: { showTitle: false },
+    });
   });
 
   it('only prefetches / resumes on Android', async () => {
@@ -110,7 +116,9 @@ describe('native argument marshalling', () => {
   it('validates the config before calling native', () => {
     setPlatform('ios');
     expect(() => authorize({ ...config, clientId: undefined })).toThrow();
-    expect(() => authorize({ ...config, iosCustomBrowser: 'netscape' })).toThrow(/iosCustomBrowser/);
+    expect(() => authorize({ ...config, iosCustomBrowser: 'netscape' })).toThrow(
+      /iosCustomBrowser/
+    );
     expect(() => authorize({ ...config, browser: { iosMode: 'nope' } })).toThrow(/iosMode/);
     expect(native.authorize).not.toHaveBeenCalled();
   });
@@ -135,7 +143,7 @@ describe('native argument marshalling', () => {
   it('subscribes browser callbacks only for the duration of the call', async () => {
     setPlatform('ios');
     let finish;
-    native.authorize.mockImplementation(() => new Promise(resolve => (finish = resolve)));
+    native.authorize.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
     const onMessage = jest.fn();
     const onEvent = jest.fn();
     const promise = authorize({ ...config, browser: { onMessage, onEvent } });
@@ -167,7 +175,12 @@ describe('revoke', () => {
           revocationEndpoint: 'https://r',
         },
       },
-      { tokenToRevoke: 'a b', sendClientId: true, includeBasicAuth: true, tokenTypeHint: 'refresh_token' }
+      {
+        tokenToRevoke: 'a b',
+        sendClientId: true,
+        includeBasicAuth: true,
+        tokenTypeHint: 'refresh_token',
+      }
     );
     const [url, init] = global.fetch.mock.calls[0];
     expect(url).toBe('https://r');
@@ -178,7 +191,10 @@ describe('revoke', () => {
   it('rejects with a network reason when the request fails', async () => {
     global.fetch = jest.fn(() => Promise.reject(new Error('offline')));
     await expect(
-      revoke({ clientId: 'c', serviceConfiguration: { revocationEndpoint: 'https://r' } }, { tokenToRevoke: 't' })
+      revoke(
+        { clientId: 'c', serviceConfiguration: { revocationEndpoint: 'https://r' } },
+        { tokenToRevoke: 't' }
+      )
     ).rejects.toMatchObject({ reason: ErrorReason.NETWORK_ERROR });
   });
 });

@@ -4,7 +4,7 @@ const { NativeModules, Platform } = require('react-native');
 let currentOS = 'ios';
 Object.defineProperty(Platform, 'OS', { configurable: true, get: () => currentOS });
 
-const setPlatform = os => {
+const setPlatform = (os) => {
   currentOS = os;
 };
 

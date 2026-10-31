@@ -4,6 +4,14 @@ module.exports = {
   extends: ['eslint:recommended'],
   parserOptions: { ecmaVersion: 2020, sourceType: 'module' },
   globals: { fetch: 'readonly', __DEV__: 'readonly' },
-  ignorePatterns: ['plugin/build/', 'node_modules/', 'android/', 'ios/', 'example/', '*.d.ts', 'plugin/'],
+  ignorePatterns: [
+    'plugin/build/',
+    'node_modules/',
+    'android/',
+    'ios/',
+    'example/',
+    '*.d.ts',
+    'plugin/',
+  ],
   rules: { 'no-unused-vars': 'warn' },
 };

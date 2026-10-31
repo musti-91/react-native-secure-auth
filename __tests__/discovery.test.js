@@ -15,7 +15,12 @@ const document = {
 };
 
 const jsonResponse = (body, status = 200) =>
-  Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) });
+  Promise.resolve({
+    ok: status < 400,
+    status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  });
 
 describe('discovery', () => {
   beforeEach(() => {
@@ -38,12 +43,16 @@ describe('discovery', () => {
     await fetchServiceConfiguration({ issuer: 'https://example.com/' });
     await fetchServiceConfiguration({ issuer: 'https://example.com' });
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch.mock.calls[0][0]).toBe('https://example.com/.well-known/openid-configuration');
+    expect(global.fetch.mock.calls[0][0]).toBe(
+      'https://example.com/.well-known/openid-configuration'
+    );
   });
 
   it('rejects documents without the required endpoints', async () => {
     global.fetch = jest.fn(() => jsonResponse({ issuer: 'x' }));
-    await expect(fetchServiceConfiguration({ issuer: 'https://example.com' })).rejects.toMatchObject({
+    await expect(
+      fetchServiceConfiguration({ issuer: 'https://example.com' })
+    ).rejects.toMatchObject({
       reason: 'invalid_response',
     });
   });

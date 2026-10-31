@@ -17,7 +17,7 @@ export const ErrorReason = Object.freeze({
   UNKNOWN: 'unknown',
 });
 
-const toNumber = value => {
+const toNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
@@ -27,7 +27,7 @@ const toNumber = value => {
   return undefined;
 };
 
-export const normalizeNativeAuthError = error => {
+export const normalizeNativeAuthError = (error) => {
   if (!error || typeof error !== 'object') {
     return error;
   }
@@ -54,15 +54,15 @@ export const normalizeNativeAuthError = error => {
   return error;
 };
 
-export const wrapNativeAuthPromise = promise =>
-  Promise.resolve(promise).catch(error => Promise.reject(normalizeNativeAuthError(error)));
+export const wrapNativeAuthPromise = (promise) =>
+  Promise.resolve(promise).catch((error) => Promise.reject(normalizeNativeAuthError(error)));
 
-export const getErrorReason = error =>
+export const getErrorReason = (error) =>
   (error && (error.reason || (error.userInfo && error.userInfo.reason))) || ErrorReason.UNKNOWN;
 
-export const isNetworkError = error => getErrorReason(error) === ErrorReason.NETWORK_ERROR;
+export const isNetworkError = (error) => getErrorReason(error) === ErrorReason.NETWORK_ERROR;
 
-export const isUserCancelledError = error => {
+export const isUserCancelledError = (error) => {
   const reason = getErrorReason(error);
   return reason === ErrorReason.USER_CANCELLED || reason === ErrorReason.PROGRAM_CANCELLED;
 };

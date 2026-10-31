@@ -52,7 +52,7 @@ const withResponseMode = (additionalParameters, responseMode) => {
   return { ...(additionalParameters || {}), response_mode: responseMode };
 };
 
-const validateIosCustomBrowser = browser => {
+const validateIosCustomBrowser = (browser) => {
   if (browser === null || browser === undefined) {
     return;
   }
@@ -116,17 +116,17 @@ export const register = ({
   validateAdditionalHeaders(additionalHeaders);
   validateConnectionTimeoutSeconds(connectionTimeoutSeconds);
   invariant(
-    Array.isArray(redirectUrls) && redirectUrls.every(url => typeof url === 'string'),
+    Array.isArray(redirectUrls) && redirectUrls.every((url) => typeof url === 'string'),
     'Config error: redirectUrls must be an Array of strings'
   );
   invariant(
     responseTypes == null ||
-      (Array.isArray(responseTypes) && responseTypes.every(rt => typeof rt === 'string')),
+      (Array.isArray(responseTypes) && responseTypes.every((rt) => typeof rt === 'string')),
     'Config error: if provided, responseTypes must be an Array of strings'
   );
   invariant(
     grantTypes == null ||
-      (Array.isArray(grantTypes) && grantTypes.every(gt => typeof gt === 'string')),
+      (Array.isArray(grantTypes) && grantTypes.every((gt) => typeof gt === 'string')),
     'Config error: if provided, grantTypes must be an Array of strings'
   );
   invariant(

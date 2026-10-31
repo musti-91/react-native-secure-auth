@@ -1,4 +1,9 @@
-import { applySwiftAppDelegatePatch, applyObjcAppDelegatePatch, ensureBridgingHeaderImport, applyInfoPlist } from '../ios';
+import {
+  applySwiftAppDelegatePatch,
+  applyObjcAppDelegatePatch,
+  ensureBridgingHeaderImport,
+  applyInfoPlist,
+} from '../ios';
 import { applyMainActivityPatch, applyRedirectSchemePlaceholder } from '../android';
 import { getRedirectUrlScheme, resolveProps } from '../index';
 
@@ -41,9 +46,15 @@ public class AppDelegate: ExpoAppDelegate {
 describe('iOS AppDelegate (Swift)', () => {
   it('adds protocol, property and resume hooks, idempotently', () => {
     const out = applySwiftAppDelegatePatch(EXPO_APP_DELEGATE);
-    expect(out).toContain('class AppDelegate: ExpoAppDelegate, RNAppAuthAuthorizationFlowManager {');
-    expect(out).toContain('weak var authorizationFlowManagerDelegate: RNAppAuthAuthorizationFlowManagerDelegate?');
-    expect(out).toMatch(/open url: URL[\s\S]*?\{\n\s+if let flow = authorizationFlowManagerDelegate, flow\.resumeExternalUserAgentFlow\(with: url\)/);
+    expect(out).toContain(
+      'class AppDelegate: ExpoAppDelegate, RNAppAuthAuthorizationFlowManager {'
+    );
+    expect(out).toContain(
+      'weak var authorizationFlowManagerDelegate: RNAppAuthAuthorizationFlowManagerDelegate?'
+    );
+    expect(out).toMatch(
+      /open url: URL[\s\S]*?\{\n\s+if let flow = authorizationFlowManagerDelegate, flow\.resumeExternalUserAgentFlow\(with: url\)/
+    );
     expect(out).toContain('flow.resumeExternalUserAgentFlow(with: webpageURL)');
     expect(applySwiftAppDelegatePatch(out)).toBe(out);
   });
@@ -70,13 +81,17 @@ describe('iOS Info.plist / bridging header', () => {
     applyInfoPlist(plist, { ios: { urlScheme: 'com.example', customBrowserQuerySchemes: true } });
     applyInfoPlist(plist, { ios: { urlScheme: 'com.example' } });
     expect(plist.CFBundleURLTypes).toHaveLength(1);
-    expect(plist.LSApplicationQueriesSchemes).toEqual(expect.arrayContaining(['foo', 'googlechrome', 'firefox']));
+    expect(plist.LSApplicationQueriesSchemes).toEqual(
+      expect.arrayContaining(['foo', 'googlechrome', 'firefox'])
+    );
   });
 
   it('adds the import once', () => {
     const once = ensureBridgingHeaderImport('#import <Foo/Foo.h>\n');
     expect(ensureBridgingHeaderImport(once)).toBe(once);
-    expect(ensureBridgingHeaderImport('#import "RNAppAuthAuthorizationFlowManager.h"\n')).toBe('#import "RNAppAuthAuthorizationFlowManager.h"\n');
+    expect(ensureBridgingHeaderImport('#import "RNAppAuthAuthorizationFlowManager.h"\n')).toBe(
+      '#import "RNAppAuthAuthorizationFlowManager.h"\n'
+    );
   });
 });
 
@@ -85,14 +100,25 @@ describe('Android', () => {
 
   it('adds and then updates the manifest placeholder', () => {
     const out = applyRedirectSchemePlaceholder(gradle, 'com.example');
-    expect(out).toContain("        manifestPlaceholders.appAuthRedirectScheme = 'com.example'\n    }");
-    expect(applyRedirectSchemePlaceholder(out, 'other')).toContain("appAuthRedirectScheme = 'other'");
-    expect(applyRedirectSchemePlaceholder(out, 'other').match(/appAuthRedirectScheme/g)).toHaveLength(1);
+    expect(out).toContain(
+      "        manifestPlaceholders.appAuthRedirectScheme = 'com.example'\n    }"
+    );
+    expect(applyRedirectSchemePlaceholder(out, 'other')).toContain(
+      "appAuthRedirectScheme = 'other'"
+    );
+    expect(
+      applyRedirectSchemePlaceholder(out, 'other').match(/appAuthRedirectScheme/g)
+    ).toHaveLength(1);
   });
 
   it('updates a placeholder inside a map literal', () => {
-    const map = gradle.replace('versionName "1.0.0"', 'manifestPlaceholders = [appAuthRedirectScheme: "old", x: "y"]');
-    expect(applyRedirectSchemePlaceholder(map, 'new')).toContain(`[appAuthRedirectScheme: 'new', x: "y"]`);
+    const map = gradle.replace(
+      'versionName "1.0.0"',
+      'manifestPlaceholders = [appAuthRedirectScheme: "old", x: "y"]'
+    );
+    expect(applyRedirectSchemePlaceholder(map, 'new')).toContain(
+      `[appAuthRedirectScheme: 'new', x: "y"]`
+    );
   });
 
   it('adds onActivityResult forwarding to Kotlin MainActivity', () => {
@@ -106,7 +132,9 @@ describe('Android', () => {
 
   it('injects into an existing override', () => {
     const kt = `package com.example\n\nclass MainActivity : ReactActivity() {\n  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {\n    super.onActivityResult(requestCode, resultCode, data)\n  }\n}\n`;
-    expect(applyMainActivityPatch(kt, 'kt')).toMatch(/onActivityResult\([^)]*\) \{\n\s+if \(requestCode == RNAppAuthModule/);
+    expect(applyMainActivityPatch(kt, 'kt')).toMatch(
+      /onActivityResult\([^)]*\) \{\n\s+if \(requestCode == RNAppAuthModule/
+    );
   });
 });
 
@@ -114,7 +142,10 @@ describe('props', () => {
   it('derives schemes from redirectUrls (but not http/https)', () => {
     expect(getRedirectUrlScheme('com.example:/oauth')).toBe('com.example');
     expect(getRedirectUrlScheme('https://example.com/cb')).toBeUndefined();
-    const p = resolveProps({ redirectUrls: ['com.example:/cb'], android: { appAuthRedirectScheme: 'override' } });
+    const p = resolveProps({
+      redirectUrls: ['com.example:/cb'],
+      android: { appAuthRedirectScheme: 'override' },
+    });
     expect(p.ios?.urlScheme).toBe('com.example');
     expect(p.android?.appAuthRedirectScheme).toBe('override');
   });

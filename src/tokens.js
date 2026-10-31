@@ -7,7 +7,7 @@ const MAX_TIMEOUT_MS = 2147483647;
 /**
  * Decodes (without verifying!) a JWT such as an ID token.
  */
-export const decodeJwt = token => {
+export const decodeJwt = (token) => {
   invariant(typeof token === 'string', 'decodeJwt: token must be a string');
   const parts = token.split('.');
   invariant(parts.length >= 2, 'decodeJwt: token is not a JWT');
@@ -18,10 +18,14 @@ export const decodeJwt = token => {
       throw new Error(`decodeJwt: invalid JWT ${name}`);
     }
   };
-  return { header: parse(parts[0], 'header'), payload: parse(parts[1], 'payload'), signature: parts[2] || '' };
+  return {
+    header: parse(parts[0], 'header'),
+    payload: parse(parts[1], 'payload'),
+    signature: parts[2] || '',
+  };
 };
 
-const toTime = date => {
+const toTime = (date) => {
   if (date === undefined || date === null || date === '') {
     return NaN;
   }
@@ -85,15 +89,18 @@ export const createTokenRefresher = (config, tokens, options = {}) => {
     }
   };
 
-  const schedule = delayMs => {
+  const schedule = (delayMs) => {
     clearTimer();
     if (!running) {
       return;
     }
-    timer = setTimeout(() => {
-      timer = null;
-      refreshNow().catch(() => {});
-    }, Math.max(0, Math.min(delayMs, MAX_TIMEOUT_MS)));
+    timer = setTimeout(
+      () => {
+        timer = null;
+        refreshNow().catch(() => {});
+      },
+      Math.max(0, Math.min(delayMs, MAX_TIMEOUT_MS))
+    );
   };
 
   const scheduleFromExpiration = () => {
@@ -112,7 +119,7 @@ export const createTokenRefresher = (config, tokens, options = {}) => {
     inFlight = Promise.resolve()
       .then(() => refresh(config, { refreshToken: state.refreshToken }))
       .then(
-        result => {
+        (result) => {
           inFlight = null;
           networkRetries = 0;
           state = {
@@ -127,7 +134,7 @@ export const createTokenRefresher = (config, tokens, options = {}) => {
           scheduleFromExpiration();
           return result;
         },
-        error => {
+        (error) => {
           inFlight = null;
           if (running && isNetworkError(error) && networkRetries < maxNetworkRetries) {
             networkRetries += 1;

@@ -16,7 +16,7 @@ export const applyInfoPlist = (plist: InfoPlist, props?: AppAuthProps): InfoPlis
   if (schemes.length) {
     plist.CFBundleURLTypes = plist.CFBundleURLTypes || [];
     for (const scheme of schemes) {
-      const exists = plist.CFBundleURLTypes.some(t => t.CFBundleURLSchemes?.includes(scheme));
+      const exists = plist.CFBundleURLTypes.some((t) => t.CFBundleURLSchemes?.includes(scheme));
       if (!exists) {
         plist.CFBundleURLTypes.push({
           CFBundleURLName: '$(PRODUCT_BUNDLE_IDENTIFIER)',
@@ -35,7 +35,7 @@ export const applyInfoPlist = (plist: InfoPlist, props?: AppAuthProps): InfoPlis
 };
 
 export const withAppAuthInfoPlist: ConfigPlugin<AppAuthProps | undefined> = (config, props) =>
-  withInfoPlist(config, mod => {
+  withInfoPlist(config, (mod) => {
     mod.modResults = applyInfoPlist(mod.modResults, props);
     return mod;
   });

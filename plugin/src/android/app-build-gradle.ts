@@ -20,12 +20,15 @@ const findBlock = (contents: string, name: string): { open: number; close: numbe
 export const applyRedirectSchemePlaceholder = (contents: string, scheme?: string): string => {
   if (!scheme) return contents;
   const block = findBlock(contents, 'defaultConfig');
-  if (!block) throw new Error('react-native-secure-auth: could not find defaultConfig in app/build.gradle');
+  if (!block)
+    throw new Error('react-native-secure-auth: could not find defaultConfig in app/build.gradle');
   const escaped = scheme.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const body = contents.slice(block.open + 1, block.close);
 
   // Already set via dotted assignment → replace value.
-  const dotted = new RegExp(`(manifestPlaceholders\\s*\\.\\s*${KEY}\\s*=\\s*)(["'])(?:\\\\.|(?!\\2).)*\\2`);
+  const dotted = new RegExp(
+    `(manifestPlaceholders\\s*\\.\\s*${KEY}\\s*=\\s*)(["'])(?:\\\\.|(?!\\2).)*\\2`
+  );
   // Already set inside a map literal → replace value.
   const inMap = new RegExp(`(\\b${KEY}\\s*:\\s*)(["'])(?:\\\\.|(?!\\2).)*\\2`);
   let next: string;
@@ -41,13 +44,15 @@ export const applyRedirectSchemePlaceholder = (contents: string, scheme?: string
 };
 
 export const withAppAuthAppBuildGradle: ConfigPlugin<AppAuthProps | undefined> = (config, props) =>
-  withAppBuildGradle(config, mod => {
+  withAppBuildGradle(config, (mod) => {
     if (mod.modResults.language !== 'groovy') {
-      throw new Error('react-native-secure-auth: only Groovy app/build.gradle is supported by the config plugin');
+      throw new Error(
+        'react-native-secure-auth: only Groovy app/build.gradle is supported by the config plugin'
+      );
     }
     mod.modResults.contents = applyRedirectSchemePlaceholder(
       mod.modResults.contents,
-      props?.android?.appAuthRedirectScheme,
+      props?.android?.appAuthRedirectScheme
     );
     return mod;
   });

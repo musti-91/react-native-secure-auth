@@ -14,7 +14,7 @@ const ENDPOINT_MAPPING = {
   jwks_uri: 'jwksUri',
 };
 
-export const discoveryUrlForIssuer = issuer =>
+export const discoveryUrlForIssuer = (issuer) =>
   `${stripTrailingSlash(issuer)}/.well-known/openid-configuration`;
 
 /**
@@ -23,10 +23,10 @@ export const discoveryUrlForIssuer = issuer =>
  * `discoveryDocument`, which lets the native layers build a configuration that still
  * validates the ID token issuer.
  */
-export const serviceConfigurationFromDiscoveryDocument = document => {
+export const serviceConfigurationFromDiscoveryDocument = (document) => {
   invariant(isPlainObject(document), 'Discovery document must be an object');
   const configuration = { discoveryDocument: document };
-  Object.keys(ENDPOINT_MAPPING).forEach(key => {
+  Object.keys(ENDPOINT_MAPPING).forEach((key) => {
     if (typeof document[key] === 'string') {
       configuration[ENDPOINT_MAPPING[key]] = document[key];
     }
@@ -57,7 +57,10 @@ const withTimeout = (promise, timeoutSeconds, controller) => {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 };
 
-const requestJson = async (url, { headers, connectionTimeoutSeconds, errorCode, method = 'GET' }) => {
+const requestJson = async (
+  url,
+  { headers, connectionTimeoutSeconds, errorCode, method = 'GET' }
+) => {
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
   let response;
   try {
@@ -115,7 +118,10 @@ export const fetchServiceConfiguration = async ({
   connectionTimeoutSeconds,
   forceRefresh = false,
 } = {}) => {
-  invariant(typeof issuer === 'string' && issuer.length > 0, 'Config error: issuer must be a string');
+  invariant(
+    typeof issuer === 'string' && issuer.length > 0,
+    'Config error: issuer must be a string'
+  );
   const key = stripTrailingSlash(issuer);
   if (!forceRefresh && cache.has(key)) {
     return cache.get(key);
@@ -126,7 +132,10 @@ export const fetchServiceConfiguration = async ({
     errorCode: 'service_configuration_fetch_error',
   });
   invariant(isPlainObject(document), 'Discovery document must be a JSON object');
-  if (typeof document.authorization_endpoint !== 'string' || typeof document.token_endpoint !== 'string') {
+  if (
+    typeof document.authorization_endpoint !== 'string' ||
+    typeof document.token_endpoint !== 'string'
+  ) {
     throw createAppAuthError(
       'service_configuration_fetch_error',
       'Discovery document is missing authorization_endpoint or token_endpoint',
@@ -138,7 +147,7 @@ export const fetchServiceConfiguration = async ({
   return configuration;
 };
 
-export const getCachedServiceConfiguration = issuer =>
+export const getCachedServiceConfiguration = (issuer) =>
   issuer ? cache.get(stripTrailingSlash(issuer)) || null : null;
 
 export const setCachedServiceConfiguration = (issuer, serviceConfiguration) => {
@@ -147,7 +156,7 @@ export const setCachedServiceConfiguration = (issuer, serviceConfiguration) => {
   cache.set(stripTrailingSlash(issuer), serviceConfiguration);
 };
 
-export const clearServiceConfigurationCache = issuer => {
+export const clearServiceConfigurationCache = (issuer) => {
   if (issuer) {
     cache.delete(stripTrailingSlash(issuer));
   } else {

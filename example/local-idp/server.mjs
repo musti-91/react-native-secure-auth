@@ -11,21 +11,34 @@ import Provider from 'oidc-provider';
 const PORT = Number(process.env.PORT || 3000);
 const ISSUER = process.env.ISSUER || `http://localhost:${PORT}`;
 const ACCESS_TOKEN_TTL = Number(process.env.ACCESS_TOKEN_TTL || 120); // short, to exercise refresh
-const REDIRECT_URIS = (process.env.REDIRECT_URIS ||
-  'com.rnappauthexample://login/callback,com.rnappauthexample://login')
+const REDIRECT_URIS = (
+  process.env.REDIRECT_URIS ||
+  'com.rnappauthexample://login/callback,com.rnappauthexample://login'
+)
   .split(',')
-  .map((s) => s.trim())
+  .map(s => s.trim())
   .filter(Boolean);
 
 // Fresh signing key per run. Tokens from a previous run are invalid after a restart.
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
-const signingKey = { ...privateKey.export({ format: 'jwk' }), kid: randomUUID(), use: 'sig', alg: 'RS256' };
+const signingKey = {
+  ...privateKey.export({ format: 'jwk' }),
+  kid: randomUUID(),
+  use: 'sig',
+  alg: 'RS256',
+};
 
 /** Headers of the latest /auth request, shown on the login page (checks customHeaders / userAgent). */
 let lastAuthorizeHeaders = {};
 
-const esc = (value) =>
-  String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const esc = value =>
+  String(value ?? '').replace(
+    /[&<>"']/g,
+    c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ],
+  );
 
 const configuration = {
   clients: [
@@ -74,17 +87,21 @@ const configuration = {
           `${form}
            <p>End the session at the local IdP?</p>
            <button form="op.logoutForm" name="logout" value="yes" class="primary">Yes, sign out</button>
-           <button form="op.logoutForm" class="secondary">No, stay signed in</button>`
+           <button form="op.logoutForm" class="secondary">No, stay signed in</button>`,
         );
       },
-      postLogoutSuccessSource: async (ctx) => {
+      postLogoutSuccessSource: async ctx => {
         ctx.type = 'html';
-        ctx.body = page('Signed out', '<p>You are signed out. You can close this window.</p>');
+        ctx.body = page(
+          'Signed out',
+          '<p>You are signed out. You can close this window.</p>',
+        );
       },
     },
   },
   // Always issue a refresh token (no offline_access / consent prompt needed), so refresh() can be tested.
-  issueRefreshToken: async (ctx, client) => client.grantTypeAllowed('refresh_token'),
+  issueRefreshToken: async (ctx, client) =>
+    client.grantTypeAllowed('refresh_token'),
   ttl: {
     AccessToken: ACCESS_TOKEN_TTL,
     IdToken: 3600,
@@ -93,7 +110,9 @@ const configuration = {
     Session: 24 * 3600,
     Grant: 24 * 3600,
   },
-  interactions: { url: (ctx, interaction) => `/interaction/${interaction.uid}` },
+  interactions: {
+    url: (ctx, interaction) => `/interaction/${interaction.uid}`,
+  },
   findAccount: async (ctx, id) => ({
     accountId: id,
     claims: async () => ({
@@ -106,17 +125,28 @@ const configuration = {
   }),
   renderError: async (ctx, out) => {
     ctx.type = 'html';
-    ctx.body = page(
-      'Error',
-      `<pre>${esc(JSON.stringify(out, null, 2))}</pre>`
-    );
+    ctx.body = page('Error', `<pre>${esc(JSON.stringify(out, null, 2))}</pre>`);
   },
 };
 
 const provider = new Provider(ISSUER, configuration);
-provider.on('server_error', (ctx, error) => console.error('[idp] server_error', error));
-provider.on('grant.error', (ctx, error) => console.error('[idp] grant.error', error.message, error.error_description || ''));
-provider.on('authorization.error', (ctx, error) => console.error('[idp] authorization.error', error.message, error.error_description || ''));
+provider.on('server_error', (ctx, error) =>
+  console.error('[idp] server_error', error),
+);
+provider.on('grant.error', (ctx, error) =>
+  console.error(
+    '[idp] grant.error',
+    error.message,
+    error.error_description || '',
+  ),
+);
+provider.on('authorization.error', (ctx, error) =>
+  console.error(
+    '[idp] authorization.error',
+    error.message,
+    error.error_description || '',
+  ),
+);
 
 // ---- Pages -----------------------------------------------------------------------------------
 
@@ -144,11 +174,31 @@ function page(title, body) {
 function loginPage(uid, details) {
   const { params, prompt } = details;
   const redirectScheme = (() => {
-    try { return new URL(params.redirect_uri).protocol.replace(':', ''); } catch { return 'com.rnappauthexample'; }
+    try {
+      return new URL(params.redirect_uri).protocol.replace(':', '');
+    } catch {
+      return 'com.rnappauthexample';
+    }
   })();
   const deepLink = `${redirectScheme}://auth?code=demo-${Date.now()}&state=from-page`;
   const headers = Object.entries(lastAuthorizeHeaders)
-    .filter(([k]) => !['host', 'connection', 'accept', 'accept-encoding', 'accept-language', 'cookie', 'upgrade-insecure-requests', 'sec-fetch-site', 'sec-fetch-mode', 'sec-fetch-dest', 'sec-fetch-user', 'priority'].includes(k))
+    .filter(
+      ([k]) =>
+        ![
+          'host',
+          'connection',
+          'accept',
+          'accept-encoding',
+          'accept-language',
+          'cookie',
+          'upgrade-insecure-requests',
+          'sec-fetch-site',
+          'sec-fetch-mode',
+          'sec-fetch-dest',
+          'sec-fetch-user',
+          'priority',
+        ].includes(k),
+    )
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n');
 
@@ -222,7 +272,7 @@ function loginPage(uid, details) {
       el.textContent = 'Not embedded (system browser, SFSafariViewController or Custom Tab without a channel)';
     }
   })();
-</script>`
+</script>`,
   );
 }
 
@@ -231,7 +281,9 @@ function loginPage(uid, details) {
 async function readForm(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
-  return Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')));
+  return Object.fromEntries(
+    new URLSearchParams(Buffer.concat(chunks).toString('utf8')),
+  );
 }
 
 async function handleInteraction(req, res, url) {
@@ -241,7 +293,10 @@ async function handleInteraction(req, res, url) {
 
   if (req.method === 'GET' && !action) {
     if (details.prompt.name === 'login') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      res.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store',
+      });
       res.end(loginPage(uid, details));
       return;
     }
@@ -250,30 +305,53 @@ async function handleInteraction(req, res, url) {
       const { params, session, prompt } = details;
       const grant = details.grantId
         ? await provider.Grant.find(details.grantId)
-        : new provider.Grant({ accountId: session.accountId, clientId: params.client_id });
-      if (prompt.details.missingOIDCScope) grant.addOIDCScope(prompt.details.missingOIDCScope.join(' '));
-      if (prompt.details.missingOIDCClaims) grant.addOIDCClaims(prompt.details.missingOIDCClaims);
-      for (const [indicator, scopes] of Object.entries(prompt.details.missingResourceScopes || {})) {
+        : new provider.Grant({
+            accountId: session.accountId,
+            clientId: params.client_id,
+          });
+      if (prompt.details.missingOIDCScope)
+        grant.addOIDCScope(prompt.details.missingOIDCScope.join(' '));
+      if (prompt.details.missingOIDCClaims)
+        grant.addOIDCClaims(prompt.details.missingOIDCClaims);
+      for (const [indicator, scopes] of Object.entries(
+        prompt.details.missingResourceScopes || {},
+      )) {
         grant.addResourceScope(indicator, scopes.join(' '));
       }
       const grantId = await grant.save();
-      await provider.interactionFinished(req, res, { consent: details.grantId ? {} : { grantId } }, { mergeWithLastSubmission: true });
+      await provider.interactionFinished(
+        req,
+        res,
+        { consent: details.grantId ? {} : { grantId } },
+        { mergeWithLastSubmission: true },
+      );
       return;
     }
   }
   if (req.method === 'POST' && action === 'login') {
     const { username } = await readForm(req);
-    const accountId = String(username || 'alice').trim().toLowerCase() || 'alice';
+    const accountId =
+      String(username || 'alice')
+        .trim()
+        .toLowerCase() || 'alice';
     console.log(`[idp] login as "${accountId}"`);
-    await provider.interactionFinished(req, res, { login: { accountId } }, { mergeWithLastSubmission: false });
+    await provider.interactionFinished(
+      req,
+      res,
+      { login: { accountId } },
+      { mergeWithLastSubmission: false },
+    );
     return;
   }
   if (req.method === 'GET' && action === 'abort') {
     await provider.interactionFinished(
       req,
       res,
-      { error: 'access_denied', error_description: 'End-User aborted interaction' },
-      { mergeWithLastSubmission: false }
+      {
+        error: 'access_denied',
+        error_description: 'End-User aborted interaction',
+      },
+      { mergeWithLastSubmission: false },
     );
     return;
   }
@@ -288,7 +366,9 @@ http
   .createServer(async (req, res) => {
     const url = new URL(req.url, ISSUER);
     const ua = String(req.headers['user-agent'] || '').slice(0, 60);
-    console.log(`[idp] ${req.method} ${url.pathname}${url.pathname === '/auth' ? `  client=${url.searchParams.get('client_id')} prompt=${url.searchParams.get('prompt') || '-'}` : ''}  ua="${ua}"`);
+    console.log(
+      `[idp] ${req.method} ${url.pathname}${url.pathname === '/auth' ? `  client=${url.searchParams.get('client_id')} prompt=${url.searchParams.get('prompt') || '-'}` : ''}  ua="${ua}"`,
+    );
     try {
       if (url.pathname === '/auth') lastAuthorizeHeaders = req.headers;
       if (url.pathname.startsWith('/interaction/')) {
@@ -298,8 +378,14 @@ http
       oidc(req, res);
     } catch (error) {
       console.error('[idp]', error);
-      if (!res.headersSent) res.writeHead(500, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(page('Error', `<pre>${esc(error.message)}</pre><p class="muted">The interaction may have expired. Start the login again from the app.</p>`));
+      if (!res.headersSent)
+        res.writeHead(500, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(
+        page(
+          'Error',
+          `<pre>${esc(error.message)}</pre><p class="muted">The interaction may have expired. Start the login again from the app.</p>`,
+        ),
+      );
     }
   })
   .listen(PORT, () => {

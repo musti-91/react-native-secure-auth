@@ -20,7 +20,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build:plugin": "tsc -p plugin/tsconfig.json",
     "test:plugin": "jest --config plugin/jest.config.js",
-    "prepare": "npm run build:plugin"
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "prepare": "npm run prettier:check && npm run lint && npm run typecheck && npm run test && npm run build:plugin"
   },
   "files": [
     "android/build.gradle",

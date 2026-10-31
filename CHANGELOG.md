@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0
+## 1.2.0 (2026-06-24)
 
 ### ⚠️ Behavior changes (check before upgrading)
 
@@ -66,6 +66,7 @@ These changes only affect `example/`. They aren't part of the npm package.
     `webViewAllowedHosts`, and shows the authorize request headers
 
   Development only: it uses plain HTTP and in-memory storage. See `example/local-idp/README.md`.
+
 - **`USE_LOCAL_IDP` switch in `example/App.tsx`** (on by default). It uses `example/localIdp.ts`
   (issuer `http://localhost:3000`, redirect `com.rnappauthexample://login/callback`,
   `dangerouslyAllowInsecureHttpRequests: true`). Set it to `false` to use your own identity provider

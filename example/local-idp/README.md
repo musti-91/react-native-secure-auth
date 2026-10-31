@@ -26,24 +26,24 @@ Then set `USE_LOCAL_IDP = true` in `example/App.tsx` (the default) and run the a
 
 ## What it provides
 
-| | |
-| --- | --- |
-| Issuer / discovery | `http://localhost:3000`, `/.well-known/openid-configuration` |
-| Client `example-app` | Secret `local-test-secret`, `client_secret_post`. Used by `example/localIdp.ts`. |
-| Client `example-public` | No secret (PKCE only). |
-| Redirect URIs | `com.rnappauthexample://login/callback`, `com.rnappauthexample://login` |
-| PKCE | Required (S256) |
-| Tokens | Access token 120 s (to test refresh), refresh token always issued, ID token |
-| Endpoints | authorize, token, userinfo (`/me`), revocation, introspection, end session (logout) |
+|                         |                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| Issuer / discovery      | `http://localhost:3000`, `/.well-known/openid-configuration`                        |
+| Client `example-app`    | Secret `local-test-secret`, `client_secret_post`. Used by `example/localIdp.ts`.    |
+| Client `example-public` | No secret (PKCE only).                                                              |
+| Redirect URIs           | `com.rnappauthexample://login/callback`, `com.rnappauthexample://login`             |
+| PKCE                    | Required (S256)                                                                     |
+| Tokens                  | Access token 120 s (to test refresh), refresh token always issued, ID token         |
+| Endpoints               | authorize, token, userinfo (`/me`), revocation, introspection, end session (logout) |
 
 Settings, through environment variables:
 
-| Variable | Default |
-| --- | --- |
-| `PORT` | `3000` |
-| `ISSUER` | `http://localhost:$PORT` |
-| `ACCESS_TOKEN_TTL` | `120` (seconds) |
-| `REDIRECT_URIS` | comma-separated list, see above |
+| Variable           | Default                         |
+| ------------------ | ------------------------------- |
+| `PORT`             | `3000`                          |
+| `ISSUER`           | `http://localhost:$PORT`        |
+| `ACCESS_TOKEN_TTL` | `120` (seconds)                 |
+| `REDIRECT_URIS`    | comma-separated list, see above |
 
 ## Login page
 

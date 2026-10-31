@@ -13,7 +13,9 @@ const escape = p => p.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&');
 const config = {
   watchFolders: [root],
   resolver: {
-    blockList: [new RegExp(`^${escape(path.join(root, 'node_modules'))}\\/.*$`)],
+    blockList: [
+      new RegExp(`^${escape(path.join(root, 'node_modules'))}\\/.*$`),
+    ],
     nodeModulesPaths: [path.join(__dirname, 'node_modules')],
     extraNodeModules: {
       'react-native-secure-auth': root,

@@ -1,12 +1,16 @@
 import '../jest/nativeMock';
 import { decodeJwt, isTokenExpired, createTokenRefresher } from '../src/tokens';
 
-const b64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+const b64 = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
 
 describe('decodeJwt', () => {
   it('decodes header and payload', () => {
     const token = `${b64({ alg: 'RS256' })}.${b64({ sub: 'ü-user' })}.sig`;
-    expect(decodeJwt(token)).toEqual({ header: { alg: 'RS256' }, payload: { sub: 'ü-user' }, signature: 'sig' });
+    expect(decodeJwt(token)).toEqual({
+      header: { alg: 'RS256' },
+      payload: { sub: 'ü-user' },
+      signature: 'sig',
+    });
   });
 
   it('throws on malformed tokens', () => {
@@ -54,7 +58,11 @@ describe('createTokenRefresher', () => {
     const fatal = Object.assign(new Error('bad'), { reason: 'oauth_error' });
     const refresh = jest.fn().mockRejectedValueOnce(networkError).mockRejectedValueOnce(fatal);
     const onError = jest.fn();
-    const refresher = createTokenRefresher({}, { refreshToken: 'r' }, { refresh, onError, retryDelaySeconds: 5 });
+    const refresher = createTokenRefresher(
+      {},
+      { refreshToken: 'r' },
+      { refresh, onError, retryDelaySeconds: 5 }
+    );
     refresher.start();
 
     await jest.advanceTimersByTimeAsync(0);
