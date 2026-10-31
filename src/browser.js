@@ -48,7 +48,7 @@ const oneOf = (value, allowed, name) => {
   }
   invariant(
     allowed.includes(value),
-    `Config error: ${name} must be one of ${allowed.map(v => `'${v}'`).join(', ')}`
+    `Config error: ${name} must be one of ${allowed.map((v) => `'${v}'`).join(', ')}`
   );
   return value;
 };
@@ -80,9 +80,9 @@ const optionalString = (value, name) => {
   return value;
 };
 
-const compact = object => {
+const compact = (object) => {
   const result = {};
-  Object.keys(object).forEach(key => {
+  Object.keys(object).forEach((key) => {
     if (object[key] !== undefined) {
       result[key] = object[key];
     }
@@ -94,7 +94,7 @@ const compact = object => {
  * Messages are always transported as strings. Objects are JSON encoded so that
  * the web page can `JSON.parse(event.data)` them.
  */
-export const serializeMessage = message => {
+export const serializeMessage = (message) => {
   invariant(message !== undefined, 'postMessage: message must not be undefined');
   if (typeof message === 'string') {
     return message;
@@ -104,7 +104,7 @@ export const serializeMessage = message => {
   return serialized;
 };
 
-export const parseMessage = data => {
+export const parseMessage = (data) => {
   if (typeof data !== 'string') {
     return data;
   }
@@ -122,20 +122,27 @@ export const parseMessage = data => {
   return data;
 };
 
-const normalizeCloseButton = closeButton => {
+const normalizeCloseButton = (closeButton) => {
   if (closeButton === undefined || closeButton === null) {
     return undefined;
   }
-  invariant(isPlainObject(closeButton), 'Config error: browser.header.closeButton must be an object');
+  invariant(
+    isPlainObject(closeButton),
+    'Config error: browser.header.closeButton must be an object'
+  );
   return compact({
-    position: oneOf(closeButton.position, CLOSE_BUTTON_POSITIONS, 'browser.header.closeButton.position'),
+    position: oneOf(
+      closeButton.position,
+      CLOSE_BUTTON_POSITIONS,
+      'browser.header.closeButton.position'
+    ),
     style: oneOf(closeButton.style, CLOSE_BUTTON_STYLES, 'browser.header.closeButton.style'),
     text: optionalString(closeButton.text, 'browser.header.closeButton.text'),
     hidden: optionalBoolean(closeButton.hidden, 'browser.header.closeButton.hidden'),
   });
 };
 
-const normalizeHeaderButtons = buttons => {
+const normalizeHeaderButtons = (buttons) => {
   if (buttons === undefined || buttons === null) {
     return undefined;
   }
@@ -155,20 +162,24 @@ const normalizeHeaderButtons = buttons => {
     return compact({
       id: button.id,
       title: button.title,
-      position: oneOf(button.position, CLOSE_BUTTON_POSITIONS, `browser.header.buttons[${index}].position`),
+      position: oneOf(
+        button.position,
+        CLOSE_BUTTON_POSITIONS,
+        `browser.header.buttons[${index}].position`
+      ),
     });
   });
 };
 
 const normalizeColors = (source, prefix) => {
   const colors = {};
-  HEADER_COLOR_KEYS.forEach(key => {
+  HEADER_COLOR_KEYS.forEach((key) => {
     colors[key] = toNativeColor(source[key], prefix ? `${prefix}.${key}` : key);
   });
   return colors;
 };
 
-export const normalizeHeader = header => {
+export const normalizeHeader = (header) => {
   if (header === undefined || header === null) {
     return undefined;
   }
@@ -187,7 +198,10 @@ export const normalizeHeader = header => {
     showTitle: optionalBoolean(header.showTitle, 'browser.header.showTitle'),
     showUrl: optionalBoolean(header.showUrl, 'browser.header.showUrl'),
     hidden: optionalBoolean(header.hidden, 'browser.header.hidden'),
-    hideUrlBarOnScroll: optionalBoolean(header.hideUrlBarOnScroll, 'browser.header.hideUrlBarOnScroll'),
+    hideUrlBarOnScroll: optionalBoolean(
+      header.hideUrlBarOnScroll,
+      'browser.header.hideUrlBarOnScroll'
+    ),
     shareButton: optionalBoolean(header.shareButton, 'browser.header.shareButton'),
     showProgress: optionalBoolean(header.showProgress, 'browser.header.showProgress'),
     colorScheme: oneOf(header.colorScheme, COLOR_SCHEMES, 'browser.header.colorScheme'),
@@ -196,7 +210,7 @@ export const normalizeHeader = header => {
   });
 };
 
-const normalizePartial = partial => {
+const normalizePartial = (partial) => {
   if (partial === undefined || partial === null) {
     return undefined;
   }
@@ -214,7 +228,18 @@ const normalizePartial = partial => {
   });
 };
 
-const normalizeMessaging = messaging => {
+const normalizeBridgeName = (name) => {
+  if (name === undefined || name === null) {
+    return undefined;
+  }
+  invariant(
+    typeof name === 'string' && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name),
+    'Config error: browser.messaging.bridgeName must be a valid JavaScript identifier'
+  );
+  return name;
+};
+
+const normalizeMessaging = (messaging) => {
   if (messaging === undefined || messaging === null) {
     return undefined;
   }
@@ -230,6 +255,7 @@ const normalizeMessaging = messaging => {
   return compact({
     enabled: optionalBoolean(messaging.enabled, 'browser.messaging.enabled'),
     initialMessages,
+    bridgeName: normalizeBridgeName(messaging.bridgeName),
     androidOrigin: optionalString(messaging.androidOrigin, 'browser.messaging.androidOrigin'),
     androidTargetOrigin: optionalString(
       messaging.androidTargetOrigin,
@@ -238,7 +264,7 @@ const normalizeMessaging = messaging => {
     allowedOrigins: messaging.allowedOrigins
       ? (invariant(
           Array.isArray(messaging.allowedOrigins) &&
-            messaging.allowedOrigins.every(o => typeof o === 'string'),
+            messaging.allowedOrigins.every((o) => typeof o === 'string'),
           'Config error: browser.messaging.allowedOrigins must be an array of strings'
         ),
         messaging.allowedOrigins)
@@ -260,7 +286,7 @@ export const normalizeBrowserOptions = (browser, platform = Platform.OS) => {
   const headers = browser.headers;
   if (headers !== undefined && headers !== null) {
     invariant(
-      isPlainObject(headers) && Object.values(headers).every(v => typeof v === 'string'),
+      isPlainObject(headers) && Object.values(headers).every((v) => typeof v === 'string'),
       'Config error: browser.headers must be { [key: string]: string }'
     );
   }
@@ -295,10 +321,18 @@ export const normalizeBrowserOptions = (browser, platform = Platform.OS) => {
     allowedHosts: browser.webViewAllowedHosts
       ? (invariant(
           Array.isArray(browser.webViewAllowedHosts) &&
-            browser.webViewAllowedHosts.every(h => typeof h === 'string'),
+            browser.webViewAllowedHosts.every((h) => typeof h === 'string'),
           'Config error: browser.webViewAllowedHosts must be an array of strings'
         ),
         browser.webViewAllowedHosts)
+      : undefined,
+    deepLinkUrls: browser.androidDeepLinkUrls
+      ? (invariant(
+          Array.isArray(browser.androidDeepLinkUrls) &&
+            browser.androidDeepLinkUrls.every((u) => typeof u === 'string' && u.length > 0),
+          'Config error: browser.androidDeepLinkUrls must be an array of non-empty strings'
+        ),
+        browser.androidDeepLinkUrls)
       : undefined,
   });
 
@@ -316,7 +350,7 @@ const getEmitter = () => {
 /**
  * Subscribe to every browser event (opened, closed, navigation, message, ...).
  */
-export const addBrowserEventListener = listener => {
+export const addBrowserEventListener = (listener) => {
   invariant(typeof listener === 'function', 'addBrowserEventListener: listener must be a function');
   return getEmitter().addListener(BROWSER_EVENT, listener);
 };
@@ -325,9 +359,9 @@ export const addBrowserEventListener = listener => {
  * Subscribe to messages posted by the page loaded in the authorization browser.
  * The listener receives the parsed payload (JSON decoded when possible) and the raw event.
  */
-export const addMessageListener = listener => {
+export const addMessageListener = (listener) => {
   invariant(typeof listener === 'function', 'addMessageListener: listener must be a function');
-  return addBrowserEventListener(event => {
+  return addBrowserEventListener((event) => {
     if (event && event.type === 'message') {
       listener(parseMessage(event.data), event);
     }
@@ -340,14 +374,34 @@ export const addMessageListener = listener => {
  * next browser session opens a messaging channel.
  *
  * Resolves with 'delivered', 'queued' or 'unsupported'.
+ *
+ * With `{ throwIfNotOpen: true }` the message is never queued: it rejects unless the message was
+ * delivered right away to an open authorize/logout browser. The error has
+ * `code: 'message_not_delivered'` and `result` set to 'notOpen' (no browser open, or its messaging
+ * channel isn't ready yet) or 'unsupported'. Messages already in the queue are left untouched.
  */
-export const postMessage = message => {
+export const postMessage = async (message, options) => {
   const payload = serializeMessage(message);
-  return Promise.resolve(getNativeModule().postBrowserMessage(payload));
+  if (!(options && options.throwIfNotOpen)) {
+    return getNativeModule().postBrowserMessage(payload);
+  }
+  const result = await getNativeModule().postBrowserMessageNow(payload);
+  if (result !== 'delivered') {
+    const error = new Error(
+      result === 'unsupported'
+        ? 'postMessage: the open browser does not support messaging, message was not delivered'
+        : 'postMessage: no browser is open or its messaging channel is not ready, message was not delivered'
+    );
+    error.code = 'message_not_delivered';
+    error.result = result;
+    throw error;
+  }
+  return result;
 };
 
 /** Removes messages queued with postMessage() that were not delivered yet. */
-export const clearPendingMessages = () => Promise.resolve(getNativeModule().clearPendingBrowserMessages());
+export const clearPendingMessages = () =>
+  Promise.resolve(getNativeModule().clearPendingBrowserMessages());
 
 /**
  * Programmatically closes the authorization / logout browser. The pending
@@ -374,7 +428,7 @@ export const withBrowserCallbacks = (browser, run) => {
   if (subscriptions.length === 0) {
     return run();
   }
-  const cleanup = () => subscriptions.forEach(subscription => subscription.remove());
+  const cleanup = () => subscriptions.forEach((subscription) => subscription.remove());
   let result;
   try {
     result = run();
@@ -383,11 +437,11 @@ export const withBrowserCallbacks = (browser, run) => {
     throw error;
   }
   return Promise.resolve(result).then(
-    value => {
+    (value) => {
       cleanup();
       return value;
     },
-    error => {
+    (error) => {
       cleanup();
       throw error;
     }

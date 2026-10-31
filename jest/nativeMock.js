@@ -17,6 +17,7 @@ const resetNativeModule = () => {
     refresh: jest.fn(() => Promise.resolve({ accessToken: 'refreshed' })),
     logout: jest.fn(() => Promise.resolve({ state: '' })),
     postBrowserMessage: jest.fn(() => Promise.resolve('queued')),
+    postBrowserMessageNow: jest.fn(() => Promise.resolve('notOpen')),
     clearPendingBrowserMessages: jest.fn(() => Promise.resolve()),
     dismissBrowser: jest.fn(() => Promise.resolve(true)),
     clearWebViewData: jest.fn(() => Promise.resolve()),

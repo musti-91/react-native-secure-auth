@@ -480,6 +480,15 @@ public class RNAppAuthModule extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
+    public void postBrowserMessageNow(final String message, final Promise promise) {
+        if (message == null) {
+            promise.reject("invalid_message", "message must be a string");
+            return;
+        }
+        BrowserBridge.get().runOnMain(() -> promise.resolve(BrowserBridge.get().postMessageNow(message)));
+    }
+
+    @ReactMethod
     public void clearPendingBrowserMessages(final Promise promise) {
         BrowserBridge.get().runOnMain(() -> {
             BrowserBridge.get().clearPendingMessages();

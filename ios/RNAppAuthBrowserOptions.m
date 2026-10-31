@@ -127,6 +127,11 @@ static BOOL RNAppAuthPatternMatches(NSString *pattern, NSString *value) {
 
         NSDictionary *messaging = RNAppAuthValue(dictionary, @"messaging", [NSDictionary class]) ?: @{};
         _messagingEnabled = RNAppAuthBool(messaging, @"enabled", [_mode isEqualToString:RNAppAuthModeWebView]);
+        NSString *bridgeName = RNAppAuthValue(messaging, @"bridgeName", [NSString class]);
+        NSRegularExpression *identifier = [NSRegularExpression regularExpressionWithPattern:@"^[A-Za-z_$][A-Za-z0-9_$]*$" options:0 error:nil];
+        BOOL validName = bridgeName.length > 0 &&
+            [identifier numberOfMatchesInString:bridgeName options:0 range:NSMakeRange(0, bridgeName.length)] == 1;
+        _messagingBridgeName = validName ? [bridgeName copy] : @"RNAppAuth";
         _initialMessages = RNAppAuthStrings(messaging, @"initialMessages");
         _allowedOrigins = RNAppAuthStrings(messaging, @"allowedOrigins");
 

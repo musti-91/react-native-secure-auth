@@ -40,6 +40,8 @@ extern NSString *const RNAppAuthModeWebView;
 @property (nonatomic, copy, readonly, nullable) NSString *userAgent;
 
 @property (nonatomic, assign, readonly) BOOL messagingEnabled;
+/// Name of the `window` object exposed to the page (default `RNAppAuth`).
+@property (nonatomic, copy, readonly) NSString *messagingBridgeName;
 @property (nonatomic, copy, readonly) NSArray<NSString *> *initialMessages;
 @property (nonatomic, copy, readonly) NSArray<NSString *> *allowedOrigins;
 

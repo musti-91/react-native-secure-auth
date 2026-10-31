@@ -2,6 +2,7 @@
 
 NSString *const RNAppAuthMessageDelivered = @"delivered";
 NSString *const RNAppAuthMessageQueued = @"queued";
+NSString *const RNAppAuthMessageNotOpen = @"notOpen";
 NSString *const RNAppAuthMessageUnsupported = @"unsupported";
 
 @implementation RNAppAuthMessageHub {
@@ -48,6 +49,17 @@ NSString *const RNAppAuthMessageUnsupported = @"unsupported";
     }
     [_pending addObject:message];
     return RNAppAuthMessageQueued;
+}
+
+- (NSString *)postMessageNow:(NSString *)message {
+    id<RNAppAuthMessageTarget> target = _target;
+    if (target == nil || ([target supportsMessaging] && ![target isMessagingReady])) {
+        return RNAppAuthMessageNotOpen;
+    }
+    if (![target supportsMessaging]) {
+        return RNAppAuthMessageUnsupported;
+    }
+    return [target deliverMessage:message] ? RNAppAuthMessageDelivered : RNAppAuthMessageNotOpen;
 }
 
 - (void)clearPendingMessages {

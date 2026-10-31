@@ -6,16 +6,22 @@
 
 static NSString *const RNAppAuthNativeHandlerName = @"RNAppAuthNative";
 
-static NSString *const RNAppAuthBridgeScript =
+static NSString *const RNAppAuthBridgeScriptTemplate =
     @"(function(){"
-     "if(window.RNAppAuth&&window.RNAppAuth.__installed){return;}"
+     "if(window.__BRIDGE__&&window.__BRIDGE__.__installed){return;}"
      "var h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.RNAppAuthNative;"
      "if(!h){return;}"
      "function send(m){h.postMessage(typeof m==='string'?m:JSON.stringify(m));}"
-     "window.RNAppAuth={__installed:true,isEmbedded:true,platform:'ios',postMessage:send,onmessage:null};"
+     "window.__BRIDGE__={__installed:true,isEmbedded:true,platform:'ios',postMessage:send,onmessage:null};"
      "if(!window.ReactNativeWebView){window.ReactNativeWebView={postMessage:send};}"
-     "try{window.dispatchEvent(new Event('rnappauthready'));}catch(e){}"
+     "try{window.dispatchEvent(new Event('__BRIDGE_EVENT__'));}catch(e){}"
      "})();";
+
+static NSString *RNAppAuthBridgeScript(NSString *bridgeName) {
+    NSString *script = [RNAppAuthBridgeScriptTemplate stringByReplacingOccurrencesOfString:@"__BRIDGE_EVENT__"
+                                                                                 withString:[[bridgeName lowercaseString] stringByAppendingString:@"ready"]];
+    return [script stringByReplacingOccurrencesOfString:@"__BRIDGE__" withString:bridgeName];
+}
 
 static NSError *RNAppAuthUserCancelledError(NSError *underlying) {
     return [OIDErrorUtilities errorWithCode:OIDErrorCodeUserCanceledAuthorizationFlow
@@ -430,7 +436,7 @@ BOOL RNAppAuthResumeSession(id<OIDExternalUserAgentSession> session, NSURL *url)
     configuration.websiteDataStore = [WKWebsiteDataStore defaultDataStore];
     if (_options.messagingEnabled) {
         WKUserContentController *contentController = [WKUserContentController new];
-        WKUserScript *script = [[WKUserScript alloc] initWithSource:RNAppAuthBridgeScript
+        WKUserScript *script = [[WKUserScript alloc] initWithSource:RNAppAuthBridgeScript(_options.messagingBridgeName)
                                                       injectionTime:WKUserScriptInjectionTimeAtDocumentStart
                                                    forMainFrameOnly:YES];
         [contentController addUserScript:script];
@@ -733,9 +739,9 @@ BOOL RNAppAuthResumeSession(id<OIDExternalUserAgentSession> session, NSURL *url)
          "try{e=new MessageEvent('message',{data:d,origin:'react-native'});}"
          "catch(_){e=document.createEvent('MessageEvent');e.initMessageEvent('message',false,false,d,'react-native','',window);}"
          "window.dispatchEvent(e);"
-         "if(window.RNAppAuth&&typeof window.RNAppAuth.onmessage==='function'){window.RNAppAuth.onmessage(e);}"
+         "if(window.%@&&typeof window.%@.onmessage==='function'){window.%@.onmessage(e);}"
          "})();",
-        RNAppAuthJSONString(message)];
+        RNAppAuthJSONString(message), _options.messagingBridgeName, _options.messagingBridgeName, _options.messagingBridgeName];
     [_webView evaluateJavaScript:script completionHandler:nil];
     return YES;
 }

@@ -4,6 +4,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 extern NSString *const RNAppAuthMessageDelivered;
 extern NSString *const RNAppAuthMessageQueued;
+extern NSString *const RNAppAuthMessageNotOpen;
 extern NSString *const RNAppAuthMessageUnsupported;
 
 /// Anything able to deliver string messages to the page shown in the authorization browser.
@@ -27,6 +28,8 @@ extern NSString *const RNAppAuthMessageUnsupported;
 - (void)detachTarget:(id<RNAppAuthMessageTarget>)target;
 
 - (NSString *)postMessage:(NSString *)message;
+/// Delivers right away or returns `notOpen` / `unsupported`. Never touches the pending queue.
+- (NSString *)postMessageNow:(NSString *)message;
 - (void)clearPendingMessages;
 - (void)targetDidBecomeReady:(id<RNAppAuthMessageTarget>)target initialMessages:(NSArray<NSString *> *)initialMessages;
 

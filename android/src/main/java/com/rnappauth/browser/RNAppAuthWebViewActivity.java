@@ -78,16 +78,17 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
     private static final String MODE = BrowserOptions.MODE_WEB_VIEW;
     private static final String NATIVE_OBJECT = "RNAppAuthNative";
 
-    /** Exposes `window.RNAppAuth.postMessage()` and a `window.ReactNativeWebView` shim. */
-    private static final String BRIDGE_SCRIPT =
-            "(function(){"
-                    + "if(window.RNAppAuth&&window.RNAppAuth.__installed){return;}"
-                    + "var n=window." + NATIVE_OBJECT + ";if(!n){return;}"
-                    + "function send(m){n.postMessage(typeof m==='string'?m:JSON.stringify(m));}"
-                    + "window.RNAppAuth={__installed:true,isEmbedded:true,platform:'android',postMessage:send,onmessage:null};"
-                    + "if(!window.ReactNativeWebView){window.ReactNativeWebView={postMessage:send};}"
-                    + "try{window.dispatchEvent(new Event('rnappauthready'));}catch(e){}"
-                    + "})();";
+    /** Exposes `window.<bridgeName>.postMessage()` (default `RNAppAuth`) and a `window.ReactNativeWebView` shim. */
+    private static String bridgeScript(String name) {
+        return "(function(){"
+                + "if(window." + name + "&&window." + name + ".__installed){return;}"
+                + "var n=window." + NATIVE_OBJECT + ";if(!n){return;}"
+                + "function send(m){n.postMessage(typeof m==='string'?m:JSON.stringify(m));}"
+                + "window." + name + "={__installed:true,isEmbedded:true,platform:'android',postMessage:send,onmessage:null};"
+                + "if(!window.ReactNativeWebView){window.ReactNativeWebView={postMessage:send};}"
+                + "try{window.dispatchEvent(new Event('" + name.toLowerCase(java.util.Locale.US) + "ready'));}catch(e){}"
+                + "})();";
+    }
 
     public static Intent createIntent(@NonNull Context context, @NonNull Uri url, @NonNull Uri redirectUri,
                                       @NonNull BrowserOptions options) {
@@ -138,6 +139,15 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
         String url = intent.getStringExtra(EXTRA_URL);
         String redirect = intent.getStringExtra(EXTRA_REDIRECT_URI);
         if (url == null || redirect == null) {
+            // Started by a deep link filter while no web view flow is open: report it instead of failing silently.
+            Uri link = intent.getData();
+            if (link != null && Intent.ACTION_VIEW.equals(intent.getAction())) {
+                Bundle event = new Bundle();
+                event.putString("mode", MODE);
+                event.putString("url", link.toString());
+                event.putString("result", "notOpen");
+                BrowserBridge.get().emit("deeplink", event);
+            }
             finish();
             return;
         }
@@ -159,6 +169,45 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
         } else {
             load(url);
         }
+    }
+
+    /**
+     * Receives deep links routed to this activity (the app adds an intent filter through manifest
+     * merging) and forwards them to the page as `{type:'deeplink', url, code, state}`.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        Uri data = intent.getData();
+        if (webView == null || data == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        if (isRedirect(data)) {
+            finishWithRedirect(data);
+            return;
+        }
+        if (!isDeepLinkAllowed(data)) return;
+        forwardDeepLink(data);
+    }
+
+    private void forwardDeepLink(Uri data) {
+        String result = BrowserBridge.RESULT_UNSUPPORTED;
+        try {
+            JSONObject message = new JSONObject();
+            message.put("type", "deeplink");
+            message.put("url", data.toString());
+            for (String key : new String[]{"code", "state", "error", "error_description"}) {
+                String value = data.isHierarchical() ? data.getQueryParameter(key) : null;
+                if (value != null) message.put(key, value);
+            }
+            result = BrowserBridge.get().postMessage(message.toString());
+        } catch (org.json.JSONException ignored) {
+            // Only thrown for non-finite numbers, which are never put here.
+        }
+        Bundle event = new Bundle();
+        event.putString("mode", MODE);
+        event.putString("url", data.toString());
+        event.putString("result", result);
+        BrowserBridge.get().emit("deeplink", event);
     }
 
     private void load(String url) {
@@ -406,7 +455,7 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
             }
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                 try {
-                    WebViewCompat.addDocumentStartJavaScript(webView, BRIDGE_SCRIPT, rules);
+                    WebViewCompat.addDocumentStartJavaScript(webView, bridgeScript(options.messaging.bridgeName), rules);
                     documentStartScriptInstalled = true;
                 } catch (Exception ignored) {
                     // Falls back to injection in onPageStarted/onPageFinished.
@@ -431,11 +480,15 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
         Uri originUri = Uri.parse(origin);
         for (String rule : allowed) {
             if ("*".equals(rule) || rule.equalsIgnoreCase(origin)) return true;
-            Uri ruleUri = Uri.parse(rule);
+            // Rules without a scheme (e.g. `*.example.com`) match any http(s) origin.
+            boolean hasScheme = rule.contains("://");
+            Uri ruleUri = Uri.parse(hasScheme ? rule : "https://" + rule);
             String ruleHost = ruleUri.getHost();
-            if (ruleHost != null && ruleHost.startsWith("*.") && originUri.getHost() != null
-                    && TextUtils.equals(ruleUri.getScheme(), originUri.getScheme())
-                    && originUri.getHost().endsWith(ruleHost.substring(1))) {
+            if (ruleHost != null && originUri.getHost() != null
+                    && (!hasScheme || TextUtils.equals(ruleUri.getScheme(), originUri.getScheme()))
+                    && (ruleHost.startsWith("*.")
+                    ? originUri.getHost().endsWith(ruleHost.substring(1))
+                    : !hasScheme && originUri.getHost().equalsIgnoreCase(ruleHost))) {
                 return true;
             }
         }
@@ -449,6 +502,32 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
         if (uri.getScheme() == null || uri.getHost() == null) return null;
         String origin = uri.getScheme() + "://" + uri.getHost();
         return uri.getPort() != -1 ? origin + ":" + uri.getPort() : origin;
+    }
+
+    private boolean isDeepLinkAllowed(Uri uri) {
+        if (options.deepLinkUrls.isEmpty()) return true;
+        String scheme = lower(uri.getScheme());
+        String target = (uri.getAuthority() != null ? uri.getAuthority() : "")
+                + (uri.getPath() != null ? uri.getPath() : "");
+        for (String raw : options.deepLinkUrls) {
+            String rule = raw.trim();
+            int separator = rule.indexOf("://");
+            if (separator >= 0) {
+                if (!TextUtils.equals(lower(rule.substring(0, separator)), scheme)) continue;
+                rule = rule.substring(separator + 3);
+            }
+            if (rule.startsWith("/")) rule = rule.substring(1);
+            boolean prefix = rule.endsWith("*");
+            if (prefix) rule = rule.substring(0, rule.length() - 1);
+            if (prefix ? target.startsWith(rule) : TextUtils.equals(trimSlash(rule), trimSlash(target))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String trimSlash(String value) {
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 
     private boolean isRedirect(Uri uri) {
@@ -486,11 +565,32 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
         String scheme = lower(uri.getScheme());
         boolean web = "http".equals(scheme) || "https".equals(scheme);
         if (web && isHostAllowed(uri)) return false;
+        // A custom-scheme link the page navigates to that is listed in deepLinkUrls stays in the web
+        // view, otherwise the system would route it to the app's main activity and close this one.
+        if (!web && !options.deepLinkUrls.isEmpty() && isDeepLinkAllowed(uri)) {
+            forwardDeepLink(uri);
+            return true;
+        }
         if ("about".equals(scheme) || "data".equals(scheme) || "blob".equals(scheme)) {
             return false;
         }
+        // Like Custom Tabs, prefer a native app (e.g. an ID app) that handles the link over the browser.
+        if (web && openInNativeApp(uri)) return true;
         openExternally(uri);
         return true;
+    }
+
+    private boolean openInNativeApp(Uri uri) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REQUIRE_NON_BROWSER);
+            startActivity(intent);
+            return true;
+        } catch (ActivityNotFoundException e) {
+            return false;
+        }
     }
 
     private void openExternally(Uri uri) {
@@ -618,11 +718,12 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
     @Override
     public boolean deliverMessage(@NonNull String message) {
         if (!isMessagingReady()) return false;
+        String name = options.messaging.bridgeName;
         String script = "(function(){var d=" + JSONObject.quote(message) + ";var e;"
                 + "try{e=new MessageEvent('message',{data:d,origin:'react-native'});}"
                 + "catch(_){e=document.createEvent('MessageEvent');e.initMessageEvent('message',false,false,d,'react-native','',window);}"
                 + "window.dispatchEvent(e);"
-                + "if(window.RNAppAuth&&typeof window.RNAppAuth.onmessage==='function'){window.RNAppAuth.onmessage(e);}"
+                + "if(window." + name + "&&typeof window." + name + ".onmessage==='function'){window." + name + ".onmessage(e);}"
                 + "})();";
         webView.evaluateJavascript(script, null);
         return true;
@@ -662,7 +763,7 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
                 urlView.setText(host != null ? host : url);
             }
             if (options.messaging.enabled && !usesDocumentStartScript()) {
-                view.evaluateJavascript(BRIDGE_SCRIPT, null);
+                view.evaluateJavascript(bridgeScript(options.messaging.bridgeName), null);
             }
             BrowserBridge.get().emit("navigationStarted", MODE, "url", url);
         }
@@ -672,7 +773,7 @@ public final class RNAppAuthWebViewActivity extends Activity implements BrowserB
             if (finishedWithResult) return;
             currentOrigin = originOf(url);
             if (options.messaging.enabled && !usesDocumentStartScript()) {
-                view.evaluateJavascript(BRIDGE_SCRIPT, null);
+                view.evaluateJavascript(bridgeScript(options.messaging.bridgeName), null);
             }
             pageReady = true;
             hideLoader();

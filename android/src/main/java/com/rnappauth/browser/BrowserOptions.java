@@ -177,6 +177,8 @@ public final class BrowserOptions {
 
     public static final class Messaging {
         public boolean enabled;
+        /** Name of the `window` object exposed to the page. */
+        public String bridgeName = "RNAppAuth";
         public List<String> initialMessages = new ArrayList<>();
         @Nullable public String androidOrigin;
         @Nullable public String androidTargetOrigin;
@@ -195,6 +197,7 @@ public final class BrowserOptions {
     @Nullable public final String animation;
     public final boolean clearWebViewData;
     @NonNull public final List<String> allowedHosts;
+    @NonNull public final List<String> deepLinkUrls;
     @NonNull private final String json;
 
     private BrowserOptions(@NonNull JSONObject json) {
@@ -212,11 +215,16 @@ public final class BrowserOptions {
         this.animation = optString(json, "animation");
         this.clearWebViewData = json.optBoolean("clearWebViewData", false);
         this.allowedHosts = stringList(json.optJSONArray("allowedHosts"));
+        this.deepLinkUrls = stringList(json.optJSONArray("deepLinkUrls"));
 
         this.messaging = new Messaging();
         JSONObject messagingJson = json.optJSONObject("messaging");
         if (messagingJson != null) {
             messaging.initialMessages = stringList(messagingJson.optJSONArray("initialMessages"));
+            String bridgeName = optString(messagingJson, "bridgeName");
+            if (bridgeName != null && bridgeName.matches("[A-Za-z_$][A-Za-z0-9_$]*")) {
+                messaging.bridgeName = bridgeName;
+            }
             messaging.androidOrigin = optString(messagingJson, "androidOrigin");
             messaging.androidTargetOrigin = optString(messagingJson, "androidTargetOrigin");
             messaging.allowedOrigins = stringList(messagingJson.optJSONArray("allowedOrigins"));

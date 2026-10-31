@@ -1,6 +1,6 @@
 {
   "name": "react-native-secure-auth",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "React Native bridge for AppAuth (OAuth 2.0 / OpenID Connect) with customizable browser headers, browser postMessage messaging, discovery helpers and automatic token refresh",
   "main": "index.js",
   "author": "musti-91",

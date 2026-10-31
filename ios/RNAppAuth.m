@@ -262,6 +262,13 @@ RCT_EXPORT_METHOD(postBrowserMessage:(NSString *)message
     resolve([[RNAppAuthMessageHub sharedHub] postMessage:message ?: @""]);
 }
 
+RCT_EXPORT_METHOD(postBrowserMessageNow:(NSString *)message
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+{
+    resolve([[RNAppAuthMessageHub sharedHub] postMessageNow:message ?: @""]);
+}
+
 RCT_EXPORT_METHOD(clearPendingBrowserMessages:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {

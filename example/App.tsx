@@ -28,25 +28,9 @@ import {
   TokenRefresher,
 } from 'react-native-secure-auth';
 
-const config: AuthConfiguration = {
-  serviceConfiguration: {
-    authorizationEndpoint: '',
-    tokenEndpoint: '',
-  },
-  clientId: '',
-  clientSecret: '',
-  redirectUrl: '',
-  scopes: [],
-  usePKCE: true,
-  additionalParameters: { prompt: 'login' },
-  dangerouslyAllowInsecureHttpRequests: false,
-  iosPrefersEphemeralSession: true,
-  clientAuthMethod: 'post',
-};
-
 type Mode = 'default' | 'styled' | 'webView' | 'partial';
 
-const browserFor = (mode: Mode): BrowserOptions | undefined => {
+const browser = (): BrowserOptions | undefined => {
   const header = {
     backgroundColor: '#ff0000',
     tintColor: '#FFFFFF',
@@ -67,46 +51,55 @@ const browserFor = (mode: Mode): BrowserOptions | undefined => {
       },
     ],
     loader: {
-      backgroundColor: '#ff0000',
+      backgroundColor: '#000',
     },
   };
-  switch (mode) {
-    case 'default':
-      return undefined;
-    case 'styled':
-      return {
-        iosMode: 'safariViewController',
-        androidMode: 'customTab',
-        header: { ...header, title: undefined, closeButton: { style: 'done' } },
-        androidAnimation: 'slide',
-      };
-    case 'webView':
-      return {
-        iosMode: 'webView',
-        androidMode: 'webView',
-        header: { ...header, title: 'WebView' },
-        messaging: {
-          initialMessages: [{ type: 'hello', from: 'react-native' }],
-          allowedOrigins: ['https://demo.duendesoftware.com'],
-        },
-        webViewAllowedHosts: ['demo.duendesoftware.com'],
-        iosPresentationStyle: 'pageSheet',
-        onMessage: message => console.log('[flow] page message', message),
-      };
-    case 'partial':
-      return {
-        androidMode: 'customTab',
-        iosMode: 'safariViewController',
-        iosPresentationStyle: 'formSheet',
-        header: { backgroundColor: '#065F46', showTitle: true },
-        androidPartial: {
-          height: 600,
-          cornerRadius: 16,
-          backgroundInteraction: true,
-        },
-      };
-  }
+  return {
+    iosMode: 'webView',
+    androidMode: 'webView',
+    header: { ...header, title: 'Login' },
+    messaging: {
+      initialMessages: [{ type: 'hello', from: 'react-native' }],
+      allowedOrigins: ['*.example.com'],
+      bridgeName: 'myapp',
+    },
+    webViewAllowedHosts: ['*.example.com'],
+    androidDeepLinkUrls: ['idapp/login', 'auth'],
+    iosPresentationStyle: 'pageSheet',
+    onMessage: (message: any) => {
+      Alert.alert(JSON.stringify(message));
+    },
+  };
 };
+
+const commonHeaders = {
+  'my-header': 'value',
+};
+
+const buildConfig = (fresh: boolean): AuthConfiguration => ({
+  serviceConfiguration: {
+    authorizationEndpoint: 'https://login.example.com/my-authorize',
+    tokenEndpoint: 'https://login.example.com/my-authorize/access_token',
+  },
+  clientId: 'your-client-id',
+  redirectUrl: 'com.rnappauthexample://login',
+  clientSecret: '',
+  scopes: ['openid', 'profile'],
+  usePKCE: true,
+  clientAuthMethod: 'post',
+  iosPrefersEphemeralSession: fresh,
+  connectionTimeoutSeconds: 10,
+  additionalParameters: fresh ? { prompt: 'login' } : {},
+  customHeaders: {
+    token: {
+      ...commonHeaders,
+    },
+    authorize: {
+      ...commonHeaders,
+    },
+  },
+  browser: browser(),
+});
 
 function Button({
   title,
@@ -136,6 +129,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('default');
   const [log, setLog] = useState<string[]>([]);
   const refresher = useRef<TokenRefresher | null>(null);
+  const config = buildConfig(true);
 
   const append = (line: string) =>
     setLog(prev =>
@@ -148,10 +142,18 @@ export default function App() {
       append(
         `${event.type}${event.mode ? ` [${event.mode}]` : ''}${
           event.url ? ` ${event.url}` : ''
-        }${event.data ? ` ${event.data}` : ''}${
-          event.buttonId ? ` ${event.buttonId}` : ''
-        }`,
+        }${event.result ? ` → ${event.result}` : ''}${
+          event.data ? ` ${event.data}` : ''
+        }${event.buttonId ? ` ${event.buttonId}` : ''}`,
       );
+      if (event.type === 'deeplink' && event.result !== 'delivered') {
+        Alert.alert(
+          'Deeplink not delivered',
+          event.result === 'notOpen'
+            ? 'No web view is open.'
+            : `The page could not receive it (${event.result}).`,
+        );
+      }
       if (event.type === 'headerButtonPress' && event.buttonId === 'help') {
         postMessage({ type: 'help-requested' });
       }
@@ -160,7 +162,7 @@ export default function App() {
       sub.remove();
       refresher.current?.stop();
     };
-  }, []);
+  }, [config]);
 
   const claims = useMemo(() => {
     try {
@@ -184,7 +186,7 @@ export default function App() {
       // Queued before the browser opens; delivered when its message channel is ready.
       const queued = await postMessage({ type: 'prefill', loginHint: 'bob' });
       append(`postMessage before open → ${queued}`);
-      const result = await authorize({ ...config, browser: browserFor(mode) });
+      const result = await authorize(config);
       setAuth(result);
       refresher.current?.stop();
       refresher.current = createTokenRefresher(config, result, {
@@ -222,7 +224,7 @@ export default function App() {
       if (!auth?.idToken) return;
       refresher.current?.stop();
       await logout(
-        { ...config, browser: browserFor(mode) },
+        { ...config },
         { idToken: auth.idToken, postLogoutRedirectUrl: config.redirectUrl },
       );
       setAuth(null);
