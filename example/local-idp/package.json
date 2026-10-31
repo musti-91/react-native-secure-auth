@@ -1,0 +1,17 @@
+{
+  "name": "rnappauth-local-idp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local OpenID Connect provider for testing the example app. Development only.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "android:reverse": "adb reverse tcp:3000 tcp:3000"
+  },
+  "dependencies": {
+    "oidc-provider": "^8.4.0"
+  },
+  "engines": {
+    "node": ">=18.12"
+  }
+}

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0
 
 ### ⚠️ Behavior changes (check before upgrading)
 
@@ -45,6 +45,39 @@ None of these change the public API. They do change runtime behavior that existi
   handles the link, it still opens in the system browser. iOS already behaves this way (`openURL`), so
   no iOS change was needed. Hosts listed in `webViewAllowedHosts` keep
   loading inside the web view, so don't list hosts that must hand off to an app (e.g. `*.id-provider.example`).
+
+### Example app and local testing
+
+These changes only affect `example/`. They aren't part of the npm package.
+
+- **Local test identity provider: `example/local-idp`.** A small OpenID Connect server based on
+  [`oidc-provider`](https://github.com/panva/node-oidc-provider), for testing against a real
+  authorization server on your machine. Start it with `yarn idp` from `example/`. On Android, also run
+  `yarn idp:android` (`adb reverse tcp:3000 tcp:3000`). It provides:
+  - discovery, authorize, token, userinfo, revocation, introspection and end session (logout)
+  - required PKCE, a client with `client_secret_post` (`example-app`) and a public client
+    (`example-public`)
+  - 120-second access tokens and a refresh token on every login, to test refresh and
+    `createTokenRefresher()`
+  - a login page that accepts any username, has a **Cancel** button (`access_denied`), and approves
+    consent automatically
+  - in web view mode, the login page also tests the bridge: it detects `window.<bridgeName>`, lists
+    messages from the app, sends `ready` / `close`, opens a deep link, opens a host outside
+    `webViewAllowedHosts`, and shows the authorize request headers
+
+  Development only: it uses plain HTTP and in-memory storage. See `example/local-idp/README.md`.
+- **`USE_LOCAL_IDP` switch in `example/App.tsx`** (on by default). It uses `example/localIdp.ts`
+  (issuer `http://localhost:3000`, redirect `com.rnappauthexample://login/callback`,
+  `dangerouslyAllowInsecureHttpRequests: true`). Set it to `false` to use your own identity provider
+  config (`realConfig`).
+- **Example app: the auth config is built once.** Before, it was rebuilt on every render, which
+  re-subscribed the browser event listener and ran discovery again after each log line.
+- **Example app: no real identity provider details.** Endpoints, client ID, redirect URL and the
+  Android deep link intent filter use placeholders (`login.example.com`, `com.rnappauthexample`).
+
+> Tip: use a redirect URI with a path, such as `myapp://login/callback`. Some servers, including
+> `oidc-provider`, return `myapp://login` as `myapp://login/?code=…`. AppAuth-iOS compares the path
+> exactly in `system` and `safariViewController` modes, so it can ignore that redirect.
 
 ## 1.0.0 (2026-10-24)
 

@@ -201,11 +201,23 @@ const result = await authorize({
 
 ## Example app
 
-`example/` is a React Native 0.88 app that runs against the Duende demo server. It shows every browser mode, messaging, dismissal, and token refresh.
+`example/` is a React Native 0.88 app. It shows the web view mode, messaging, deep links, dismissal, and token refresh.
+
+By default it runs against a local OpenID Connect server in `example/local-idp`, so you can test the full flow (login, code exchange, refresh, logout, messaging) on your machine:
+
+```sh
+cd example/local-idp && npm install && cd ..   # once
+yarn idp                                       # starts http://localhost:3000, keep it running
+yarn idp:android                               # Android only: adb reverse tcp:3000 tcp:3000
+```
+
+Then, in another terminal:
 
 ```sh
 cd example && yarn install && (cd ios && pod install) && yarn ios   # or: yarn android
 ```
+
+To use your own identity provider instead, set `USE_LOCAL_IDP = false` in `example/App.tsx` and fill in `realConfig`. See [example/local-idp/README.md](example/local-idp/README.md) for the server's clients, settings and test steps.
 
 ## Development
 

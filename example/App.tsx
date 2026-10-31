@@ -27,6 +27,10 @@ import {
   refresh,
   TokenRefresher,
 } from 'react-native-secure-auth';
+import { LOCAL_IDP_URL, localIdpConfig } from './localIdp';
+
+/** true: use the local test server in example/local-idp. false: use realConfig below. */
+const USE_LOCAL_IDP = true;
 
 type Mode = 'default' | 'styled' | 'webView' | 'partial';
 
@@ -60,14 +64,18 @@ const browser = (): BrowserOptions | undefined => {
     header: { ...header, title: 'Login' },
     messaging: {
       initialMessages: [{ type: 'hello', from: 'react-native' }],
-      allowedOrigins: ['*.example.com'],
+      allowedOrigins: USE_LOCAL_IDP ? [LOCAL_IDP_URL] : ['*.example.com'],
       bridgeName: 'myapp',
     },
-    webViewAllowedHosts: ['*.example.com'],
+    webViewAllowedHosts: USE_LOCAL_IDP ? ['localhost'] : ['*.example.com'],
     androidDeepLinkUrls: ['idapp/login', 'auth'],
     iosPresentationStyle: 'pageSheet',
     onMessage: (message: any) => {
-      Alert.alert(JSON.stringify(message));
+      if (message.type === 'close') {
+        dismissBrowser().then(d => console.log(`dismissBrowser → ${d}`));
+        return;
+      }
+      Alert.alert('Message from web view', JSON.stringify(message));
     },
   };
 };
@@ -77,6 +85,18 @@ const commonHeaders = {
 };
 
 const buildConfig = (fresh: boolean): AuthConfiguration => ({
+  ...(USE_LOCAL_IDP ? localIdpConfig : realConfig),
+  iosPrefersEphemeralSession: fresh,
+  connectionTimeoutSeconds: 10,
+  additionalParameters: fresh ? { prompt: 'login' } : {},
+  customHeaders: {
+    token: { ...commonHeaders },
+    authorize: { ...commonHeaders },
+  },
+  browser: browser(),
+});
+
+const realConfig: AuthConfiguration = {
   serviceConfiguration: {
     authorizationEndpoint: 'https://login.example.com/my-authorize',
     tokenEndpoint: 'https://login.example.com/my-authorize/access_token',
@@ -87,19 +107,7 @@ const buildConfig = (fresh: boolean): AuthConfiguration => ({
   scopes: ['openid', 'profile'],
   usePKCE: true,
   clientAuthMethod: 'post',
-  iosPrefersEphemeralSession: fresh,
-  connectionTimeoutSeconds: 10,
-  additionalParameters: fresh ? { prompt: 'login' } : {},
-  customHeaders: {
-    token: {
-      ...commonHeaders,
-    },
-    authorize: {
-      ...commonHeaders,
-    },
-  },
-  browser: browser(),
-});
+};
 
 function Button({
   title,
@@ -129,7 +137,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('default');
   const [log, setLog] = useState<string[]>([]);
   const refresher = useRef<TokenRefresher | null>(null);
-  const config = buildConfig(true);
+  const config = useMemo(() => buildConfig(true), []);
 
   const append = (line: string) =>
     setLog(prev =>
