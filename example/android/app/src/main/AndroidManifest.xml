@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -15,19 +16,27 @@
         android:name=".MainActivity"
         android:label="@string/app_name"
         android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
-        android:launchMode="singleTask"
+        android:launchMode="singleTop"
         android:windowSoftInputMode="adjustResize"
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
-          <intent-filter>
+      </activity>
+      <!-- The open web view receives these links (singleTop) so it stays on top and can forward them to the page. -->
+      <activity
+        android:name="com.rnappauth.browser.RNAppAuthWebViewActivity"
+        android:exported="true"
+        tools:node="merge"
+        tools:replace="android:exported">
+        <intent-filter>
             <action android:name="android.intent.action.VIEW"/>
             <category android:name="android.intent.category.DEFAULT"/>
             <category android:name="android.intent.category.BROWSABLE"/>
-             <data android:scheme="your_scheme"/>
-      </intent-filter>
+            <data android:scheme="com.rnappauthexample" android:host="idapp" />
+            <data android:scheme="com.rnappauthexample" android:host="auth" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>

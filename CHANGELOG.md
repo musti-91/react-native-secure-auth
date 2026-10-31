@@ -1,5 +1,84 @@
 # Changelog
 
+## 1.2.0
+
+### ⚠️ Behavior changes (check before upgrading)
+
+None of these change the public API. They do change runtime behavior that existing apps may rely on.
+
+- **Android web view: links to hosts not in `webViewAllowedHosts` can now open a native app.** Before,
+  they always opened in the system browser. On Android 11+ an installed app that handles the link now
+  opens first. If your flow expects the browser, add the host to `webViewAllowedHosts`. See Fixes below.
+- **`messaging.allowedOrigins` (Android): rules without a scheme now match.** `'*.example.com'` and
+  `'example.com'` used to match nothing on Android. Now they match any http(s) origin on that host.
+  If you relied on the old behavior, the bridge now accepts more origins than before. Use full
+  origins such as `'https://login.example.com'` to keep the list strict.
+- **`postMessage()` always returns a promise.** An invalid message (for example `undefined`) used to
+  throw synchronously. Now the returned promise rejects. Code that wraps `postMessage()` in
+  `try/catch` without `await` no longer catches the error.
+- **Deep link intent filter on `RNAppAuthWebViewActivity` (opt-in).** If you move a deep link filter
+  from `MainActivity` to the web view activity, a link that arrives while no web view is open does
+  **not** open your app. It emits a `deeplink` event with `result: 'notOpen'` and the activity closes.
+  Only route links there that make sense during a web view flow.
+
+### Features
+
+- **Android web view: forward deep links to the page.** A deep link routed to the open web view is
+  posted to the page as `{type:'deeplink', url, code, state}` and emits a `deeplink` event. Limit which links are forwarded with
+  `browser.androidDeepLinkUrls`. Custom-scheme links that the page itself navigates to and that
+  match `androidDeepLinkUrls` are forwarded too, and stay in the web view. See `docs/browser.md`.
+- **Custom bridge name: `browser.messaging.bridgeName`** (iOS and Android web view). Exposes
+  `window.<bridgeName>` and a `<bridgename>ready` event instead of `window.RNAppAuth` /
+  `rnappauthready`. The default stays `RNAppAuth`. The name must be a valid JavaScript identifier.
+- **`postMessage(message, { throwIfNotOpen: true })`** delivers only to an authorize/logout browser
+  that is open now. Otherwise it rejects with `code: 'message_not_delivered'` and
+  `result: 'notOpen' | 'unsupported'`. The message is never queued, and messages already in the queue
+  are left untouched. Without the option, the behavior is the same as before.
+- **`BrowserEvent.result`** and the `deeplink` event type are added to the TypeScript types.
+
+### Fixes
+
+- **Android web view: open native apps for app links.** When `androidMode: 'webView'` navigates to an
+  http(s) host that isn't in `webViewAllowedHosts`, the web view now first tries to open an installed
+  app that handles the link (`FLAG_ACTIVITY_REQUIRE_NON_BROWSER`, Android 11+), as Custom Tabs do. This
+  makes flows such as login with an ID or banking app open that app instead of a second browser. If no app
+  handles the link, it still opens in the system browser. iOS already behaves this way (`openURL`), so
+  no iOS change was needed. Hosts listed in `webViewAllowedHosts` keep
+  loading inside the web view, so don't list hosts that must hand off to an app (e.g. `*.id-provider.example`).
+
+### Example app and local testing
+
+These changes only affect `example/`. They aren't part of the npm package.
+
+- **Local test identity provider: `example/local-idp`.** A small OpenID Connect server based on
+  [`oidc-provider`](https://github.com/panva/node-oidc-provider), for testing against a real
+  authorization server on your machine. Start it with `yarn idp` from `example/`. On Android, also run
+  `yarn idp:android` (`adb reverse tcp:3000 tcp:3000`). It provides:
+  - discovery, authorize, token, userinfo, revocation, introspection and end session (logout)
+  - required PKCE, a client with `client_secret_post` (`example-app`) and a public client
+    (`example-public`)
+  - 120-second access tokens and a refresh token on every login, to test refresh and
+    `createTokenRefresher()`
+  - a login page that accepts any username, has a **Cancel** button (`access_denied`), and approves
+    consent automatically
+  - in web view mode, the login page also tests the bridge: it detects `window.<bridgeName>`, lists
+    messages from the app, sends `ready` / `close`, opens a deep link, opens a host outside
+    `webViewAllowedHosts`, and shows the authorize request headers
+
+  Development only: it uses plain HTTP and in-memory storage. See `example/local-idp/README.md`.
+- **`USE_LOCAL_IDP` switch in `example/App.tsx`** (on by default). It uses `example/localIdp.ts`
+  (issuer `http://localhost:3000`, redirect `com.rnappauthexample://login/callback`,
+  `dangerouslyAllowInsecureHttpRequests: true`). Set it to `false` to use your own identity provider
+  config (`realConfig`).
+- **Example app: the auth config is built once.** Before, it was rebuilt on every render, which
+  re-subscribed the browser event listener and ran discovery again after each log line.
+- **Example app: no real identity provider details.** Endpoints, client ID, redirect URL and the
+  Android deep link intent filter use placeholders (`login.example.com`, `com.rnappauthexample`).
+
+> Tip: use a redirect URI with a path, such as `myapp://login/callback`. Some servers, including
+> `oidc-provider`, return `myapp://login` as `myapp://login/?code=…`. AppAuth-iOS compares the path
+> exactly in `system` and `safariViewController` modes, so it can ignore that redirect.
+
 ## 1.0.0 (2026-10-24)
 
 First public release of `react-native-secure-auth`. It's a React Native bridge for
@@ -59,7 +138,9 @@ Objective-C), creates or updates the bridging header, sets `appAuthRedirectSchem
 result forwarding to `MainActivity`.
 
 ```json
-{ "plugins": [["react-native-secure-auth", { "redirectUrls": ["com.example.app:/oauthredirect"] }]] }
+{
+  "plugins": [["react-native-secure-auth", { "redirectUrls": ["com.example.app:/oauthredirect"] }]]
+}
 ```
 
 ### Requirements

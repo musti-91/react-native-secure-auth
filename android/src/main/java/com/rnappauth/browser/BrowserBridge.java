@@ -25,6 +25,7 @@ public final class BrowserBridge {
     public static final String RESULT_DELIVERED = "delivered";
     public static final String RESULT_QUEUED = "queued";
     public static final String RESULT_UNSUPPORTED = "unsupported";
+    public static final String RESULT_NOT_OPEN = "notOpen";
 
     /** Something able to deliver a string message to the page. */
     public interface MessageTarget {
@@ -101,6 +102,23 @@ public final class BrowserBridge {
         }
         pendingMessages.add(message);
         return RESULT_QUEUED;
+    }
+
+    /**
+     * Called by JS `postMessage(message, { throwIfNotOpen: true })`: delivers right away or returns
+     * `notOpen` / `unsupported`. Never touches the pending queue.
+     */
+    @MainThread
+    @NonNull
+    public String postMessageNow(@NonNull String message) {
+        MessageTarget current = target;
+        if (current == null || (current.supportsMessaging() && !current.isMessagingReady())) {
+            return RESULT_NOT_OPEN;
+        }
+        if (!current.supportsMessaging()) {
+            return RESULT_UNSUPPORTED;
+        }
+        return current.deliverMessage(message) ? RESULT_DELIVERED : RESULT_NOT_OPEN;
     }
 
     @MainThread

@@ -51,7 +51,7 @@ cd ios && pod install
      manifestPlaceholders = [appAuthRedirectScheme: 'com.example.app']
    }
    ```
-2. *(Recommended)* Forward authorization results from `MainActivity`. Then `resumePendingAuthorize()` can finish a login after Android re-creates the activity:
+2. _(Recommended)_ Forward authorization results from `MainActivity`. Then `resumePendingAuthorize()` can finish a login after Android re-creates the activity:
    ```kotlin
    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
      if (requestCode == RNAppAuthModule.AUTHORIZATION_REQUEST_CODE) RNAppAuthModule.stashAuthorizationResult(data)
@@ -64,16 +64,20 @@ cd ios && pod install
 ```json
 {
   "plugins": [
-    ["react-native-secure-auth", {
-      "redirectUrls": ["com.example.app:/oauthredirect"],
-      "ios": { "customBrowserQuerySchemes": true },
-      "android": { "patchMainActivity": true }
-    }]
+    [
+      "react-native-secure-auth",
+      {
+        "redirectUrls": ["com.example.app:/oauthredirect"],
+        "ios": { "customBrowserQuerySchemes": true },
+        "android": { "patchMainActivity": true }
+      }
+    ]
   ]
 }
 ```
 
 The plugin makes these changes:
+
 - Registers the URL scheme.
 - Patches the Swift `AppDelegate`, or the legacy Objective-C one.
 - Creates or updates the bridging header.
@@ -107,6 +111,7 @@ await logout(config, { idToken: result.idToken, postLogoutRedirectUrl: config.re
 ### Core methods
 
 The core methods are `authorize`, `refresh`, `revoke`, `logout`, `register`, and `prefetchConfiguration`. They take these config options:
+
 - `issuer` / `serviceConfiguration`, `clientId`, `clientSecret`, `scopes`, `redirectUrl`
 - `additionalParameters`, `additionalHeaders`, `customHeaders`
 - `useNonce`, `usePKCE`, `skipCodeExchange`, `connectionTimeoutSeconds`, `dangerouslyAllowInsecureHttpRequests`
@@ -114,30 +119,30 @@ The core methods are `authorize`, `refresh`, `revoke`, `logout`, `register`, and
 
 ### New config options
 
-| Option | Platforms | Description |
-| --- | --- | --- |
-| `browser` | both | Header, messaging, and presentation options. See [docs/browser.md](docs/browser.md). |
-| `responseMode` | both | Sets the `response_mode` parameter (`query`, `fragment`, `form_post`, …). |
-| `clientAuthMethod` | both | `'basic'` (default) or `'post'`, which sends the client secret in the token request body. iOS now supports `'post'` too. |
-| `iosCustomBrowser: 'edge'` | iOS | Opens Microsoft Edge. |
+| Option                     | Platforms | Description                                                                                                              |
+| -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `browser`                  | both      | Header, messaging, and presentation options. See [docs/browser.md](docs/browser.md).                                     |
+| `responseMode`             | both      | Sets the `response_mode` parameter (`query`, `fragment`, `form_post`, …).                                                |
+| `clientAuthMethod`         | both      | `'basic'` (default) or `'post'`, which sends the client secret in the token request body. iOS now supports `'post'` too. |
+| `iosCustomBrowser: 'edge'` | iOS       | Opens Microsoft Edge.                                                                                                    |
 
 ### New functions
 
-| Function | Description |
-| --- | --- |
-| `postMessage(message)` | Sends a string or JSON value to the page. Returns `'delivered'`, `'queued'` (no channel yet; it's delivered when the channel opens), or `'unsupported'`. |
-| `clearPendingMessages()` | Drops queued messages. |
-| `addMessageListener(fn)` | Receives messages that the page posts. JSON payloads are parsed. |
-| `addBrowserEventListener(fn)` | Browser lifecycle events: `opened`, `closed`, navigation events, `messageChannelReady`, `message`, `headerButtonPress`, … |
-| `dismissBrowser()` | Closes the authorization or logout browser from code. The pending promise rejects with reason `program_cancelled`. |
-| `clearWebViewData()` | Clears cookies and storage for the embedded web view mode. |
-| `resumePendingAuthorize(opts)` | Android only. Completes an authorization whose result was stashed after the activity was re-created. |
-| `fetchServiceConfiguration({ issuer })` | Runs discovery explicitly. The result is cached and reused by `authorize`, `refresh`, and `logout`. |
-| `getCachedServiceConfiguration`, `setCachedServiceConfiguration`, `clearServiceConfigurationCache`, `serviceConfigurationFromDiscoveryDocument` | Discovery cache helpers. |
-| `fetchUserInfo(config, { accessToken })` | Calls the `userinfo` endpoint. |
-| `decodeJwt(token)` / `isTokenExpired(date, leeway)` | Token helpers. `decodeJwt` doesn't verify the signature. |
-| `createTokenRefresher(config, tokens, opts)` | Refreshes tokens automatically before they expire, and retries after network errors. |
-| `getErrorReason`, `isNetworkError`, `isUserCancelledError`, `ErrorReason` | Error helpers that work the same on both platforms. |
+| Function                                                                                                                                        | Description                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `postMessage(message, { throwIfNotOpen }?)`                                                                                                     | Sends a string or JSON value to the page. Returns `'delivered'`, `'queued'` (no channel yet; it's delivered when the channel opens), or `'unsupported'`. With `throwIfNotOpen: true` it never queues: it rejects (`code: 'message_not_delivered'`, `result: 'notOpen' \| 'unsupported'`) unless an open browser received it. |
+| `clearPendingMessages()`                                                                                                                        | Drops queued messages.                                                                                                                                                                                                                                                                                      |
+| `addMessageListener(fn)`                                                                                                                        | Receives messages that the page posts. JSON payloads are parsed.                                                                                                                                                                                                                                            |
+| `addBrowserEventListener(fn)`                                                                                                                   | Browser lifecycle events: `opened`, `closed`, navigation events, `messageChannelReady`, `message`, `headerButtonPress`, …                                                                                                                                                                                   |
+| `dismissBrowser()`                                                                                                                              | Closes the authorization or logout browser from code. The pending promise rejects with reason `program_cancelled`.                                                                                                                                                                                          |
+| `clearWebViewData()`                                                                                                                            | Clears cookies and storage for the embedded web view mode.                                                                                                                                                                                                                                                  |
+| `resumePendingAuthorize(opts)`                                                                                                                  | Android only. Completes an authorization whose result was stashed after the activity was re-created.                                                                                                                                                                                                        |
+| `fetchServiceConfiguration({ issuer })`                                                                                                         | Runs discovery explicitly. The result is cached and reused by `authorize`, `refresh`, and `logout`.                                                                                                                                                                                                         |
+| `getCachedServiceConfiguration`, `setCachedServiceConfiguration`, `clearServiceConfigurationCache`, `serviceConfigurationFromDiscoveryDocument` | Discovery cache helpers.                                                                                                                                                                                                                                                                                    |
+| `fetchUserInfo(config, { accessToken })`                                                                                                        | Calls the `userinfo` endpoint.                                                                                                                                                                                                                                                                              |
+| `decodeJwt(token)` / `isTokenExpired(date, leeway)`                                                                                             | Token helpers. `decodeJwt` doesn't verify the signature.                                                                                                                                                                                                                                                    |
+| `createTokenRefresher(config, tokens, opts)`                                                                                                    | Refreshes tokens automatically before they expire, and retries after network errors.                                                                                                                                                                                                                        |
+| `getErrorReason`, `isNetworkError`, `isUserCancelledError`, `ErrorReason`                                                                       | Error helpers that work the same on both platforms.                                                                                                                                                                                                                                                         |
 
 ### Errors
 
@@ -167,38 +172,52 @@ const result = await authorize({
       buttons: [{ id: 'help', title: 'Help' }],
     },
     messaging: { allowedOrigins: ['https://login.example.com'] },
-    onMessage: msg => console.log('page says', msg),
-    onEvent: e => e.type === 'headerButtonPress' && postMessage({ type: 'help' }),
+    onMessage: (msg) => console.log('page says', msg),
+    onEvent: (e) => e.type === 'headerButtonPress' && postMessage({ type: 'help' }),
   },
 });
 ```
 
 ## Features
 
-| Capability | API |
-| --- | --- |
-| Customisable in-app browser | `browser.header`, `browser.iosMode`, `browser.androidMode` |
-| Partial Custom Tabs | `browser.androidPartial` |
-| Expose and keep discovered config | `fetchServiceConfiguration` and the discovery cache |
-| Response mode | `responseMode` |
-| Dismiss the browser from code | `dismissBrowser()` |
-| HTTP status and network errors | `error.httpStatus`, `error.reason`, `isNetworkError()` |
-| Clear browser data | `clearWebViewData()`, `browser.clearWebViewData`, ephemeral sessions |
-| User-Agent and headers on the authorize page | `browser.userAgent`, `browser.headers` |
-| Automatic renewal | `createTokenRefresher()` |
-| Decode `id_token` | `decodeJwt()` |
-| Client secret via POST on iOS | `clientAuthMethod: 'post'` |
-| No `AuthorizationService` leaks | The Android module disposes of every service it creates. |
-| Edge on iOS | `iosCustomBrowser: 'edge'` |
-| Safe boolean bridging | All booleans are coerced in JS before they reach the bridge. |
+| Capability                                   | API                                                                  |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| Customisable in-app browser                  | `browser.header`, `browser.iosMode`, `browser.androidMode`           |
+| Partial Custom Tabs                          | `browser.androidPartial`                                             |
+| Expose and keep discovered config            | `fetchServiceConfiguration` and the discovery cache                  |
+| Response mode                                | `responseMode`                                                       |
+| Dismiss the browser from code                | `dismissBrowser()`                                                   |
+| HTTP status and network errors               | `error.httpStatus`, `error.reason`, `isNetworkError()`               |
+| Clear browser data                           | `clearWebViewData()`, `browser.clearWebViewData`, ephemeral sessions |
+| User-Agent and headers on the authorize page | `browser.userAgent`, `browser.headers`                               |
+| Automatic renewal                            | `createTokenRefresher()`                                             |
+| Decode `id_token`                            | `decodeJwt()`                                                        |
+| Client secret via POST on iOS                | `clientAuthMethod: 'post'`                                           |
+| No `AuthorizationService` leaks              | The Android module disposes of every service it creates.             |
+| Edge on iOS                                  | `iosCustomBrowser: 'edge'`                                           |
+| Safe boolean bridging                        | All booleans are coerced in JS before they reach the bridge.         |
+| Deep links into the open Android web view    | `browser.androidDeepLinkUrls`, `deeplink` event                      |
+| Custom page bridge name                      | `browser.messaging.bridgeName`                                       |
 
 ## Example app
 
-`example/` is a React Native 0.88 app that runs against the Duende demo server. It shows every browser mode, messaging, dismissal, and token refresh.
+`example/` is a React Native 0.88 app. It shows the web view mode, messaging, deep links, dismissal, and token refresh.
+
+By default it runs against a local OpenID Connect server in `example/local-idp`, so you can test the full flow (login, code exchange, refresh, logout, messaging) on your machine:
+
+```sh
+cd example/local-idp && npm install && cd ..   # once
+yarn idp                                       # starts http://localhost:3000, keep it running
+yarn idp:android                               # Android only: adb reverse tcp:3000 tcp:3000
+```
+
+Then, in another terminal:
 
 ```sh
 cd example && yarn install && (cd ios && pod install) && yarn ios   # or: yarn android
 ```
+
+To use your own identity provider instead, set `USE_LOCAL_IDP = false` in `example/App.tsx` and fill in `realConfig`. See [example/local-idp/README.md](example/local-idp/README.md) for the server's clients, settings and test steps.
 
 ## Development
 

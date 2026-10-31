@@ -44,6 +44,7 @@ describe('normalizeBrowserOptions', () => {
         messaging: {
           initialMessages: [{ hello: 1 }, 'raw'],
           allowedOrigins: ['https://example.com'],
+          bridgeName: 'myapp',
         },
       },
       'ios'
@@ -56,6 +57,7 @@ describe('normalizeBrowserOptions', () => {
       messaging: {
         initialMessages: ['{"hello":1}', 'raw'],
         allowedOrigins: ['https://example.com'],
+        bridgeName: 'myapp',
       },
     });
   });
@@ -77,6 +79,7 @@ describe('normalizeBrowserOptions', () => {
     [{ headers: { a: 1 } }, /headers/],
     [{ androidPartial: { height: -1 } }, /height/],
     [{ messaging: { allowedOrigins: [1] } }, /allowedOrigins/],
+    [{ messaging: { bridgeName: 'my-app' } }, /bridgeName/],
   ])('rejects invalid config %#', (browser, message) => {
     expect(() => normalizeBrowserOptions(browser, 'ios')).toThrow(message);
   });
@@ -104,5 +107,24 @@ describe('messages', () => {
     await expect(dismissBrowser()).resolves.toBe(true);
     await clearPendingMessages();
     expect(native.clearPendingBrowserMessages).toHaveBeenCalled();
+  });
+
+  it('rejects with throwIfNotOpen when no browser is open, without touching the queue', async () => {
+    setPlatform('android');
+    const native = resetNativeModule();
+    await expect(postMessage({ a: 1 }, { throwIfNotOpen: true })).rejects.toMatchObject({
+      code: 'message_not_delivered',
+      result: 'notOpen',
+    });
+    expect(native.postBrowserMessageNow).toHaveBeenCalledWith('{"a":1}');
+    expect(native.postBrowserMessage).not.toHaveBeenCalled();
+    expect(native.clearPendingBrowserMessages).not.toHaveBeenCalled();
+
+    native.postBrowserMessageNow.mockResolvedValueOnce('unsupported');
+    await expect(postMessage('x', { throwIfNotOpen: true })).rejects.toMatchObject({
+      result: 'unsupported',
+    });
+    native.postBrowserMessageNow.mockResolvedValueOnce('delivered');
+    await expect(postMessage({ a: 1 }, { throwIfNotOpen: true })).resolves.toBe('delivered');
   });
 });

@@ -1,5 +1,17 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
+# Local test server
+
+This app uses a local OpenID Connect server by default (`USE_LOCAL_IDP` in `App.tsx`). Start it before you log in:
+
+```sh
+(cd local-idp && npm install)   # once
+yarn idp                        # http://localhost:3000
+yarn idp:android                # Android only: lets the emulator/device reach localhost
+```
+
+See [local-idp/README.md](local-idp/README.md) for details.
+
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.

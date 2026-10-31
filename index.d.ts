@@ -115,6 +115,12 @@ export interface BrowserMessagingOptions {
    * (`delegate_permission/common.use_as_origin`).
    */
   androidOrigin?: string;
+  /**
+   * Web view modes: name of the `window` object exposed to the page (default `RNAppAuth`), e.g.
+   * `'myapp'` gives `window.myapp.postMessage()` and a `myappready` event. Must be a valid
+   * JavaScript identifier.
+   */
+  bridgeName?: string;
   /** Android Custom Tabs: restrict messages to this page origin. */
   androidTargetOrigin?: string;
   /** Web view: only exchange messages with pages served from these origins. */
@@ -133,6 +139,7 @@ export type BrowserEventType =
   | 'messageChannelReady'
   | 'messageChannelFailed'
   | 'message'
+  | 'deeplink'
   | 'headerButtonPress';
 
 export interface BrowserEvent {
@@ -146,6 +153,11 @@ export interface BrowserEvent {
   /** For `headerButtonPress` events. */
   buttonId?: string;
   error?: string;
+  /**
+   * For `deeplink` events: 'delivered', 'queued' (channel not ready), 'unsupported', or 'notOpen'
+   * (no web view was open when the link arrived).
+   */
+  result?: 'delivered' | 'queued' | 'unsupported' | 'notOpen';
 }
 
 export interface BrowserLoaderOptions {
@@ -196,7 +208,8 @@ export interface BrowserOptions {
   userAgent?: string;
   messaging?: BrowserMessagingOptions;
   /** iOS modal presentation style for SFSafariViewController / web view. */
-  iosPresentationStyle?: 'automatic' | 'fullScreen' | 'pageSheet' | 'formSheet' | 'overFullScreen' | 'popover';
+  iosPresentationStyle?:
+    'automatic' | 'fullScreen' | 'pageSheet' | 'formSheet' | 'overFullScreen' | 'popover';
   /** iOS: prevent swipe-to-dismiss for sheet presentations. */
   iosModalInPresentation?: boolean;
   /** SFSafariViewController reader mode. */
@@ -217,6 +230,12 @@ export interface BrowserOptions {
   clearWebViewData?: boolean;
   /** Web view mode: hosts allowed to load inside the web view; others open in the system browser. */
   webViewAllowedHosts?: string[];
+  /**
+   * Android web view: deep links forwarded to the page as `{type:'deeplink', url, code, state}`.
+   * Each entry is `scheme://host/path`, or `host/path` to match any scheme (e.g. `login`).
+   * A trailing `*` matches any suffix. Query strings are ignored. Default: every link routed to the web view.
+   */
+  androidDeepLinkUrls?: string[];
   /** Called for messages posted by the page while this flow is running. */
   onMessage?: (message: unknown, event: BrowserEvent) => void;
   /** Called for every browser event while this flow is running. */
@@ -266,12 +285,7 @@ export type BaseAuthConfiguration = BaseConfiguration & {
 };
 
 export type AndroidCustomBrowser =
-  | 'chrome'
-  | 'chromeCustomTab'
-  | 'firefox'
-  | 'firefoxCustomTab'
-  | 'samsung'
-  | 'samsungCustomTab';
+  'chrome' | 'chromeCustomTab' | 'firefox' | 'firefoxCustomTab' | 'samsung' | 'samsungCustomTab';
 
 export type AuthConfiguration = BaseAuthConfiguration & {
   clientSecret?: string;
@@ -398,10 +412,26 @@ export type PostMessageResult = 'delivered' | 'queued' | 'unsupported';
  * Sends a message (string, or JSON-serializable value) to the page loaded in the
  * authorization/logout browser. Messages sent while no browser is open are queued
  * and delivered as soon as the next browser opens its messaging channel.
+ *
+ * With `throwIfNotOpen`, the message is never queued: the promise rejects with a `PostMessageError`
+ * unless the message was delivered right away (no browser open, channel not ready, or messaging
+ * unsupported). Already queued messages are left untouched.
  */
-export function postMessage(message: unknown): Promise<PostMessageResult>;
+export interface PostMessageOptions {
+  throwIfNotOpen?: boolean;
+}
+export interface PostMessageError extends Error {
+  code: 'message_not_delivered';
+  result: 'notOpen' | 'unsupported';
+}
+export function postMessage(
+  message: unknown,
+  options?: PostMessageOptions
+): Promise<PostMessageResult>;
 export function clearPendingMessages(): Promise<void>;
-export function addBrowserEventListener(listener: (event: BrowserEvent) => void): EmitterSubscription;
+export function addBrowserEventListener(
+  listener: (event: BrowserEvent) => void
+): EmitterSubscription;
 export function addMessageListener(
   listener: (message: unknown, event: BrowserEvent) => void
 ): EmitterSubscription;
@@ -526,10 +556,7 @@ type AppAuthErrorCode =
   | 'userinfo_failed';
 
 type ErrorCode =
-  | OAuthAuthorizationErrorCode
-  | OAuthTokenErrorCode
-  | OICRegistrationErrorCode
-  | AppAuthErrorCode;
+  OAuthAuthorizationErrorCode | OAuthTokenErrorCode | OICRegistrationErrorCode | AppAuthErrorCode;
 
 export type AppAuthErrorReason =
   | 'user_cancelled'
